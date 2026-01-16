@@ -1,0 +1,16 @@
+{
+  "name": "continuity",
+  "version": "1.0.0",
+  "description": "Continuity Electron Application",
+  "license": "ISC",
+  "author": "Jane Scott",
+  "type": "commonjs",
+  "main": "frontend/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "electron": "^40.0.0"
+  }
+}
