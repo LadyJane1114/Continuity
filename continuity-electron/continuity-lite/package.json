@@ -17,6 +17,16 @@
     "build:mac": "npm run build && electron-builder --mac",
     "build:linux": "npm run build && electron-builder --linux"
   },
+  "build":{
+    "appId":"com.electron.app",
+    "productName":"continuity-lite",
+    "directories": {
+      "buildResources": "build"
+    },
+      "win": {
+        "icon": "build/icon.ico"
+      }
+  },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0"
