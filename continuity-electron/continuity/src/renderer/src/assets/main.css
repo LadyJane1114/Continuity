@@ -6,6 +6,13 @@ $cont-Mblue: #165085;
 $cont-white: #FFFFFF;
 $cont-black: #000000; */
 
+/* .montserrat-<uniquifier> {
+  font-family: "Montserrat", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: <weight>;
+  font-style: normal;
+} */
+
 #root {
   display: flex;
   align-items: center;
@@ -45,24 +52,42 @@ body {
 .card {
   background-color: rgb(39, 39, 39);
   border-radius: 15px;
-  margin: 10px;
-  padding: 10px;
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  font-family: "Montserrat", sans-serif;
+  font-weight: normal;
+  font-style: normal;
+  margin-top: 10px;
 }
-.card a {
-  text-decoration: none;
-  color: white;
+.card-body {
+  display: flex;
+  flex-direction: row;
+  padding-right: 2px;
+}
+.card-text {
+  padding-right: 30px;
+}
+.card-text p {
+  font-size: smaller;
+  color: rgb(153, 156, 168) !important;
+}
+.card-button {
+  align-content: center;
 }
 .CreateBtn {
   background-color: #5799bc;
   border-radius: 15px;
   padding: 10px;
+  color: white;
 }
 .CreateBtn:hover{
   background-color: #65abd1;
 }
 
-.LoadBtn {
+/* .LoadBtn {
   border: solid #5799bc;
   border-radius: 15px;
   padding: 10px;
-}
+} */
