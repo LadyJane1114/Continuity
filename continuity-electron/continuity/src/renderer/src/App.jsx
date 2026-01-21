@@ -1,3 +1,5 @@
+import Branding from "./components/Branding";
+import ProjectSelection from "./components/ProjectSelection";
 
 
 function App() {
@@ -5,7 +7,8 @@ function App() {
 
   return (
     <>
-      <h1>Continuity</h1>
+      <Branding/>
+      <ProjectSelection/>
     </>
   )
 }
