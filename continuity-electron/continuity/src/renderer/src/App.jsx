@@ -1,5 +1,4 @@
-import Branding from "./components/Branding";
-import ProjectSelection from "./components/ProjectSelection";
+import LaunchPage from "./pages/LaunchPage";
 
 
 function App() {
@@ -7,8 +6,7 @@ function App() {
 
   return (
     <>
-      <Branding/>
-      <ProjectSelection/>
+    <LaunchPage/>
     </>
   )
 }
