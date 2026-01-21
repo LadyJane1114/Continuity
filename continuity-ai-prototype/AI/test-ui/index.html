@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Assistant Test UI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 800px;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .input-section {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #555;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 120px;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        #submitBtn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        #submitBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        #submitBtn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        #clearBtn {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        #clearBtn:hover {
+            background: #e0e0e0;
+        }
+
+        .response-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 200px;
+        }
+
+        .response-label {
+            color: #555;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        #response {
+            color: #333;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .loading {
+            color: #667eea;
+            font-style: italic;
+        }
+
+        .error {
+            color: #e74c3c;
+            padding: 15px;
+            background: #fee;
+            border-radius: 8px;
+            border-left: 4px solid #e74c3c;
+        }
+
+        .success {
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .status-online {
+            background: #27ae60;
+            box-shadow: 0 0 5px #27ae60;
+        }
+
+        .status-offline {
+            background: #e74c3c;
+        }
+
+        .user-id-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 AI Assistant</h1>
+        <p class="subtitle">
+            <span class="status-indicator" id="statusIndicator"></span>
+            <span id="statusText">Connecting...</span>
+        </p>
+
+        <div class="input-section">
+            <label for="userId">User ID (optional)</label>
+            <input type="text" id="userId" class="user-id-input" placeholder="default" value="test_user">
+        </div>
+
+        <div class="input-section">
+            <label for="query">Your Question</label>
+            <textarea 
+                id="query" 
+                placeholder="Ask me anything... (e.g., What is Python? Tell me about machine learning.)"
+                autofocus
+            ></textarea>
+        </div>
+
+        <div class="button-row">
+            <button id="submitBtn" onclick="submitQuery()">Send Query</button>
+            <button id="clearBtn" onclick="clearAll()">Clear</button>
+        </div>
+
+        <div class="response-section">
+            <div class="response-label">Response:</div>
+            <div id="response">Waiting for your question...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8002';
+        
+        // Check API health on load
+        async function checkHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    document.getElementById('statusIndicator').className = 'status-indicator status-online';
+                    document.getElementById('statusText').textContent = 'Connected';
+                } else {
+                    throw new Error('API not healthy');
+                }
+            } catch (error) {
+                document.getElementById('statusIndicator').className = 'status-indicator status-offline';
+                document.getElementById('statusText').textContent = 'Disconnected - Make sure API is running';
+            }
+        }
+
+        async function submitQuery() {
+            const query = document.getElementById('query').value.trim();
+            const userId = document.getElementById('userId').value.trim() || 'default';
+            const responseDiv = document.getElementById('response');
+            const submitBtn = document.getElementById('submitBtn');
+
+            if (!query) {
+                responseDiv.innerHTML = '<div class="error">Please enter a question!</div>';
+                return;
+            }
+
+            // Disable button and show loading
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+            responseDiv.innerHTML = '<div class="loading">🤔 Thinking...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/query-stream`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        user_id: userId,
+                        use_context: true,
+                        stream: true
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+
+                // Stream the response
+                responseDiv.className = 'success';
+                responseDiv.innerHTML = '';
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let fullText = '';
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    fullText += decoder.decode(value, { stream: true });
+                    responseDiv.innerHTML = `${escapeHtml(fullText)}`;
+                }
+
+            } catch (error) {
+                responseDiv.innerHTML = `
+                    <div class="error">
+                        <strong>Error:</strong> ${escapeHtml(error.message)}<br>
+                        Make sure the API is running at ${API_BASE}
+                    </div>
+                `;
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Send Query';
+            }
+        }
+
+        function clearAll() {
+            document.getElementById('query').value = '';
+            document.getElementById('response').textContent = 'Waiting for your question...';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Allow Enter key to submit (Shift+Enter for new line)
+        document.getElementById('query').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                submitQuery();
+            }
+        });
+
+        // Check health on load
+        checkHealth();
+        setInterval(checkHealth, 30000); // Check every 30 seconds
+    </script>
+</body>
+</html>
