@@ -1,0 +1,89 @@
+{
+  "entities": [
+    {
+      "id": "ent_000001",
+      "entityType": "character",
+      "name": "Marula",
+      "aliases": [],
+      "facts": [
+        {
+          "key": "source",
+          "value": "extracted from text",
+          "time": "t_001"
+        }
+      ],
+      "version": 1
+    },
+    {
+      "id": "ent_000002",
+      "entityType": "character",
+      "name": "Malvin",
+      "aliases": [],
+      "facts": [
+        {
+          "key": "source",
+          "value": "extracted from text",
+          "time": "t_001"
+        }
+      ],
+      "version": 1
+    },
+    {
+      "id": "ent_000003",
+      "entityType": "character",
+      "name": "Prince William",
+      "aliases": [],
+      "facts": [
+        {
+          "key": "source",
+          "value": "extracted from text",
+          "time": "t_001"
+        }
+      ],
+      "version": 1
+    },
+    {
+      "id": "ent_000004",
+      "entityType": "character",
+      "name": "Princess Elena",
+      "aliases": [],
+      "facts": [
+        {
+          "key": "source",
+          "value": "extracted from text",
+          "time": "t_001"
+        }
+      ],
+      "version": 1
+    },
+    {
+      "id": "ent_000005",
+      "entityType": "character",
+      "name": "Sir Lancelot",
+      "aliases": [],
+      "facts": [
+        {
+          "key": "source",
+          "value": "extracted from text",
+          "time": "t_001"
+        }
+      ],
+      "version": 1
+    },
+    {
+      "id": "ent_000006",
+      "entityType": "character",
+      "name": "They",
+      "aliases": [],
+      "facts": [
+        {
+          "key": "source",
+          "value": "extracted from text",
+          "time": "t_001"
+        }
+      ],
+      "version": 1
+    }
+  ],
+  "count": 6
+}

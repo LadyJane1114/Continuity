@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Model Configuration
-MODEL_NAME = os.getenv("MODEL_NAME", "phi-4-reasoning-q6_k.gguf")
-MODEL_PATH = os.getenv("MODEL_PATH", "./models/phi-4-reasoning-q6_k.gguf")
+MODEL_NAME = os.getenv("MODEL_NAME", "DeepSeek-R1-Distill-Llama-8B-Q4_K_M.gguf")
+MODEL_PATH = os.getenv("MODEL_PATH", "./models/DeepSeek-R1-Distill-Llama-8B-Q4_K_M.gguf")
 MODEL_PROVIDER = "llama-cpp"  # Options: "llama-cpp"
 
 # Vector Database Configuration

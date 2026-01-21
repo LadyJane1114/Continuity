@@ -9,7 +9,7 @@ from models.llm_manager import LLMManager
 from interfaces.web_api import create_app
 from utils.context_manager import ContextManager
 from utils.logger import setup_logging
-from config.settings import API_HOST, API_PORT, DISCORD_TOKEN
+from config.settings import API_HOST, API_PORT
 
 # Setup logging
 setup_logging()
@@ -53,27 +53,9 @@ async def run_web_api(vector_db: VectorDB, llm_manager: LLMManager):
         raise
 
 
-async def run_discord_bot(vector_db: VectorDB, llm_manager: LLMManager):
-    """Run the Discord bot."""
-    # Import discord_bot only when needed
-    from interfaces.discord_bot import create_bot
-    
-    if not DISCORD_TOKEN:
-        raise ValueError("DISCORD_TOKEN not set in environment")
-
-    context_manager = ContextManager()
-    bot = create_bot(vector_db, llm_manager, context_manager)
-
-    logger.info("Starting Discord bot")
-    await bot.start(DISCORD_TOKEN)
-
-
-async def main(mode: Literal["web", "discord", "both"] = "both"):
+async def main():
     """
-    Main entry point.
-
-    Args:
-        mode: Which interface to run ('web', 'discord', or 'both')
+    Main entry point - runs web API server.
     """
     # Initialize components
     logger.info("Initializing components...")
@@ -102,20 +84,9 @@ async def main(mode: Literal["web", "discord", "both"] = "both"):
             db_info = vector_db.get_collection_info()
             logger.info(f"Vector DB now contains: {db_info['document_count']} documents")
 
-        # Run specified interface(s)
-        if mode == "web":
-            logger.info("Running in WEB mode")
-            logger.info("About to call run_web_api...")
-            await run_web_api(vector_db, llm_manager)
-            logger.info("run_web_api returned!")
-        elif mode == "discord":
-            await run_discord_bot(vector_db, llm_manager)
-        elif mode == "both":
-            # Run both concurrently
-            await asyncio.gather(
-                run_web_api(vector_db, llm_manager),
-                run_discord_bot(vector_db, llm_manager),
-            )
+        # Run web API server
+        logger.info("Starting web API server...")
+        await run_web_api(vector_db, llm_manager)
 
     except Exception as e:
         logger.error(f"Fatal error in main: {type(e).__name__}: {e}", exc_info=True)
@@ -123,22 +94,8 @@ async def main(mode: Literal["web", "discord", "both"] = "both"):
 
 
 if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        description="AI Assistant with RAG powered by Phi 4"
-    )
-    parser.add_argument(
-        "--mode",
-        choices=["web", "discord", "both"],
-        default="both",
-        help="Which interface to run",
-    )
-
-    args = parser.parse_args()
-
     try:
-        asyncio.run(main(mode=args.mode))
+        asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Shutting down...")
         print("\n✓ Application terminated")
