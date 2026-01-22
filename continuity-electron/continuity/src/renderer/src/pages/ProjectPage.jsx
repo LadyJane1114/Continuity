@@ -1,8 +1,10 @@
-import React from 'react'
+import '../assets/project-page.css'
+import SegmentUpload from '../components/ProjectPage/SegmentUpload'
+
 
 const ProjectPage = () => {
   return (
-    <div>ProjectPage</div>
+    <SegmentUpload/>
   )
 }
 

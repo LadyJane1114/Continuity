@@ -1,0 +1,99 @@
+/* Sidebar */
+
+
+
+/* Segment upload */
+.segmentUpload {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    align-self: stretch;
+}
+
+.segmentUpload label {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: "Montserrat", sans-serif;
+    font-size: x-large;
+    text-shadow:1px 1px 1px #65abd1;
+    padding: 10px 0px;
+}
+
+textarea {
+    width: 100%;
+    min-height: 200px;
+    resize: vertical;
+    line-height: 1.5;
+    padding: 0.75rem;
+    font-family: "Montserrat", sans-serif;
+}
+
+.form-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+.form-footer .characterLength {
+    font-family: "Montserrat", sans-serif;
+    font-size: smaller;
+    color: rgb(153, 156, 168);
+}
+.form-footer button {
+    background-color: #5799bc;
+    border-radius: 10px;
+    padding: 5px 5px;
+    font-family: "Montserrat", sans-serif;
+    color: white;
+    margin: 5px 0px;
+}
+.form-footer button:disabled {
+    background-color: #165085;
+    color: rgb(153, 156, 168);
+}
+.form-footer button:not(:disabled):hover {
+    background-color: #65abd1;
+    cursor: pointer;
+}
+
+
+/* testing modal (temporary) */
+
+.modal-overlay {
+    position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        /* dark semi-transparent background */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        /* sits on top of everything */
+}
+.modal-content {
+    background: #165085;
+    padding: 1rem;
+    border-radius: 12px;
+    text-align: center;
+    min-width: 300px;
+    max-width: 90%;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content button {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    background-color: #5799bc;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-family: "Montserrat", sans-serif;
+}
+.modal-content button:hover {
+    background-color: #65abd1;
+}
