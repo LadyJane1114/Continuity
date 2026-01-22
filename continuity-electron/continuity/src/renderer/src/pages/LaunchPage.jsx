@@ -1,6 +1,6 @@
 import '../assets/launch-page.css'
-import Branding from '../components/Branding'
-import ProjectSelection from '../components/ProjectSelection'
+import Branding from '../components/Launch/Branding'
+import ProjectSelection from '../components/Launch/ProjectSelection'
 
 const LaunchPage = () => {
   return (
