@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import TestModal from './TestModal';
+import TestModal from '../components/ProjectPage/TestModal';
 
 const SegmentUpload = () => {
     const [segment,setSegment] = useState("");
