@@ -1,0 +1,45 @@
+/* brand colors */
+/* $cont-orange: #ffab49;
+$cont-grey: #e5e5e5;
+$cont-Lblue: #5799bc;
+$cont-Mblue: #165085;
+$cont-white: #FFFFFF;
+$cont-black: #000000; */
+
+/* .montserrat-<uniquifier> {
+  font-family: "Montserrat", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: <weight>;
+  font-style: normal;
+} */
+
+#root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  margin-bottom: 80px;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+  background-color: rgb(0, 0, 0);
+  color: white;
+}
+
+@media (max-width: 720px) {
+
+}
+
+@media (max-width: 620px) {
+
+}
+
+@media (max-width: 350px) {
+
+}
+
