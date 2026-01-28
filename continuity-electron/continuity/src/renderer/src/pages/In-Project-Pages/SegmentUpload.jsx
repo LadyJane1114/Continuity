@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import TestModal from '../components/ProjectPage/TestModal';
+// import TestModal from '@renderer/components/ProjectPage/TestModal';
 
 const SegmentUpload = () => {
     const [segment,setSegment] = useState("");
-    const [showModal, setShowModal] = useState(false);
+    // const [showModal, setShowModal] = useState(false);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -16,10 +16,10 @@ const SegmentUpload = () => {
         //show simulation modal
         setShowModal(true);
     }
-    const handleCloseModal = () => {
-        setShowModal(false);
-        setSegment(""); // optional: clear textarea after submit
-    }
+    // const handleCloseModal = () => {
+    //     setShowModal(false);
+    //     setSegment(""); // optional: clear textarea after submit
+    // }
     
   return (
     <>
@@ -47,12 +47,12 @@ const SegmentUpload = () => {
     </form>
 
     {/* Modal for simulation purposes only */}
-          {showModal && (
+          {/* {showModal && (
               <TestModal
                   message="You submitted your text!"
                   onClose={handleCloseModal}
               />
-          )}
+          )} */}
     </>
   )
 }
