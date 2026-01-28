@@ -2,6 +2,7 @@
 import logging
 import json
 import re
+import asyncio
 from typing import List, Dict, Any
 from models.llm_manager import LLMManager
 
@@ -42,11 +43,11 @@ Characters (comma-separated names):"""
 
     async def extract_entities(self, text: str, time_id: str = "t_000") -> List[Dict[str, Any]]:
         """
-        Extract entities from story text.
+        Extract entities from story text using hybrid regex + SLM validation.
 
         Args:
             text: Story text to analyze
-            time_id: Time identifier for when this text was added (for versioning facts)
+            time_id: Time identifier for when this text was added
 
         Returns:
             List of entity dictionaries in the specified format
@@ -54,56 +55,274 @@ Characters (comma-separated names):"""
         try:
             logger.info(f"Extracting entities from {len(text)} characters of text...")
             
-            # WORKAROUND: LLM is hanging on entity extraction tasks
-            # For now, extract common character names manually from text
-            entities = self._extract_entities_heuristic(text, time_id)
+            # Step 1: Loose regex capture (high recall, okay with noise)
+            candidates = self._capture_entity_candidates(text)
+            logger.info(f"Initial candidates: {len(candidates)}")
             
-            logger.info(f"Successfully extracted {len(entities)} entities (heuristic method)")
-            return entities
+            # Step 2: Validate each candidate with SLM
+            validated = []
+            for candidate in candidates:
+                is_entity = await self._validate_entity_candidate(candidate, text)
+                if is_entity:
+                    validated.append(candidate)
+            logger.info(f"Validated entities: {len(validated)}")
+            
+            # Step 3: Classify each validated entity
+            entities = []
+            for entity_name in validated:
+                entity_type = await self._classify_entity_type(entity_name, text)
+                if entity_type and entity_type != 'none':
+                    entity_dict = {
+                        'name': entity_name,
+                        'type': entity_type
+                    }
+                    entities.append(entity_dict)
+            
+            # Format entities
+            formatted_entities = self._format_entities(entities, time_id)
+            logger.info(f"Successfully extracted {len(formatted_entities)} entities (hybrid regex+SLM)")
+            return formatted_entities
             
         except Exception as e:
             logger.error(f"Error extracting entities: {e}", exc_info=True)
             return []
 
-    def _extract_entities_heuristic(self, text: str, time_id: str) -> List[Dict[str, Any]]:
+    def _capture_entity_candidates(self, text: str) -> List[str]:
         """
-        Extract entities using heuristic pattern matching (fallback when LLM fails).
-        Looks for capitalized words that appear to be names.
-
+        Capture potential entities using loose regex (high recall).
+        
         Args:
             text: Story text
-            time_id: Time identifier
-
+            
         Returns:
-            List of entities
+            List of candidate entity names
         """
-        # Common character name patterns
         import re
         
-        # Look for capitalized words (potential names)
-        # More sophisticated: find capitalized words that appear early or multiple times
-        potential_names = set()
+        candidates = set()
         
-        # Simple heuristic: find capitalized words in common contexts
+        # Capture all capitalized words (including multi-word names)
+        capitalized = re.findall(r'\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b', text)
+        for word in capitalized:
+            if len(word) > 2 and len(word.split()) <= 3:
+                candidates.add(word)
+        
+        # Also capture keywords patterns
+        keywords = ['kingdom', 'castle', 'sword', 'magic', 'battle', 'guild', 'curse']
+        for keyword in keywords:
+            pattern = r'(?:the\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+' + keyword + r'\b'
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            for match in matches:
+                if len(match) > 2:
+                    candidates.add(match)
+        
+        logger.debug(f"Captured {len(candidates)} candidates: {sorted(candidates)}")
+        return sorted(list(candidates))
+
+    async def _validate_entity_candidate(self, candidate: str, text: str) -> bool:
+        """
+        Use SLM to validate if a candidate is an actual entity.
+        
+        Args:
+            candidate: Potential entity name
+            text: Story context
+            
+        Returns:
+            True if it's a real entity, False otherwise
+        """
+        try:
+            # Show context around the candidate
+            context_match = text.find(candidate)
+            if context_match != -1:
+                start = max(0, context_match - 50)
+                end = min(len(text), context_match + len(candidate) + 50)
+                context = text[start:end]
+            else:
+                context = text[:200]
+            
+            prompt = f"""Is '{candidate}' a real entity name (character, place, object, etc.) in this story? 
+Context: ...{context}...
+
+Answer only: YES or NO"""
+            
+            response = await self.llm_manager.generate(
+                prompt=prompt,
+                temperature=0.1,
+            )
+            
+            is_entity = 'YES' in response.upper()
+            logger.debug(f"Validation '{candidate}': {is_entity} (response: {response[:50]})")
+            return is_entity
+            
+        except asyncio.TimeoutError:
+            logger.warning(f"Validation timeout for '{candidate}' - assuming entity")
+            return True  # Default to True on timeout
+        except Exception as e:
+            logger.warning(f"Validation error for '{candidate}': {e}")
+            return False
+
+    async def _classify_entity_type(self, entity_name: str, text: str) -> str:
+        """
+        Use SLM to classify the type of entity.
+        
+        Args:
+            entity_name: Validated entity name
+            text: Story context
+            
+        Returns:
+            Entity type: character, location, object, event, organization, concept, or none
+        """
+        try:
+            # Show context
+            context_match = text.find(entity_name)
+            if context_match != -1:
+                start = max(0, context_match - 50)
+                end = min(len(text), context_match + len(entity_name) + 50)
+                context = text[start:end]
+            else:
+                context = text[:200]
+            
+            prompt = f"""What type of entity is '{entity_name}' in this story?
+Context: ...{context}...
+
+Answer ONLY ONE of these:
+- character
+- location
+- object
+- event
+- organization
+- concept
+- none"""
+            
+            response = await self.llm_manager.generate(
+                prompt=prompt,
+                temperature=0.1,
+            )
+            
+            # Extract the type from response
+            response_lower = response.lower()
+            types = ['character', 'location', 'object', 'event', 'organization', 'concept', 'none']
+            
+            for entity_type in types:
+                if entity_type in response_lower:
+                    logger.debug(f"Classification '{entity_name}': {entity_type}")
+                    return entity_type
+            
+            logger.warning(f"Could not classify '{entity_name}', response: {response[:50]}")
+            return 'none'
+            
+        except Exception as e:
+            logger.warning(f"Classification error for '{entity_name}': {e}")
+            return 'none'
+
+    def _extract_entities_heuristic(self, text: str, time_id: str) -> List[Dict[str, Any]]:
+        """
+        DEPRECATED: Use the hybrid regex + SLM approach instead.
+        """
+        return []
+        import re
+        
+        entities_dict = {}  # Deduplicate by normalized name only (first type wins)
+        
+        # Helper to normalize names (lowercase for dedup, keep original for display)
+        def add_entity(name, entity_type):
+            normalized = name.lower().strip()
+            # Avoid very long captures (likely regex errors)
+            if len(name) > 100:
+                return
+            # Avoid multi-word false positives like "protected the"
+            if len(normalized.split()) > 3:
+                return
+            # Skip if already seen (first type wins)
+            if normalized in entities_dict:
+                return
+            entities_dict[normalized] = {'type': entity_type, 'name': name}
+        
+        # ===== CHARACTERS: Capitalized words (excluding common words) =====
         name_contexts = re.findall(r'\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b', text)
-        
-        # Filter out common articles, conjunctions, pronouns that got capitalized
         common_words = {'The', 'And', 'But', 'Once', 'A', 'An', 'In', 'On', 'At', 'By', 'With', 'For', 
                        'They', 'He', 'She', 'It', 'We', 'You', 'I', 'That', 'This', 'Which', 'Who', 'What',
-                       'Until', 'Their', 'Over', 'All', 'When', 'Where', 'Why', 'How'}
+                       'Until', 'Their', 'Over', 'All', 'When', 'Where', 'Why', 'How', 'From', 'To', 'Is', 'Are',
+                       'Was', 'Were', 'Be', 'Being', 'Been', 'Have', 'Has', 'Had', 'Do', 'Does', 'Did', 'Will',
+                       'Would', 'Could', 'Should', 'May', 'Might', 'Must', 'Can', 'Not', 'No', 'Yes', 'Protected',
+                       'Ruled', 'Lived', 'Threatened', 'Alongside',
+                       # Descriptive words (adjectives, adverbs)
+                       'Faraway', 'Dark', 'Brave', 'Fair', 'Great', 'Golden', 'Ancient', 'Sacred', 'Forbidden',
+                       'Mighty', 'Evil', 'Good', 'Bad', 'Small', 'Large', 'Big', 'Little', 'New', 'Old', 'Young'}
+        
+        # Check if a word appears in lowercase (indicates it's probably an adjective, not a proper noun)
+        # Only filter words that are KNOWN descriptive adjectives
+        lowercase_words = re.findall(r'\b([a-z]+)\b', text.lower())
+        
+        # List of adjectives we know to filter (appear as both lowercase and capitalized)
+        known_adjectives = {'faraway', 'dark', 'brave', 'fair', 'great', 'golden', 'ancient', 'sacred'}
         
         for name in name_contexts:
-            if name not in common_words and len(name) > 2:
-                potential_names.add(name)
+            if name not in common_words and len(name) > 2 and len(name.split()) <= 2:
+                # Skip if it's a known adjective that appears in lowercase in the text
+                if name.lower() not in known_adjectives or name.lower() not in lowercase_words:
+                    add_entity(name, 'character')
         
-        # Convert to entities
+        # ===== LOCATIONS: Only match clear location phrases =====
+        location_keywords = ['kingdom', 'castle', 'realm', 'forest', 'village', 'city', 'land', 'tower']
+        for keyword in location_keywords:
+            # Match only 1-word adjective/name before location keyword, with "the" optional
+            pattern = r'(?:the\s+)?([A-Z][a-z]+)\s+' + keyword + r'\b'
+            matches = re.finditer(pattern, text, re.IGNORECASE)
+            for match in matches:
+                name = match.group(1)
+                if name not in common_words:
+                    add_entity(name, 'location')
+        
+        # ===== OBJECTS: Sword, crown, ring, etc. =====
+        object_keywords = ['sword', 'crown', 'ring', 'amulet', 'artifact', 'weapon', 'staff', 'wand',
+                          'shield', 'axe', 'bow', 'armor', 'gem', 'stone', 'chalice']
+        for keyword in object_keywords:
+            pattern = r'(?:the\s+)?([A-Z][a-z]+)\s+' + keyword + r'\b'
+            matches = re.finditer(pattern, text, re.IGNORECASE)
+            for match in matches:
+                name = match.group(1)
+                if name not in common_words:
+                    add_entity(name, 'object')
+        
+        # ===== EVENTS: Battle, war, ceremony, etc. =====
+        event_keywords = ['battle', 'war', 'ceremony', 'meeting', 'coronation', 'quest', 'siege']
+        for keyword in event_keywords:
+            pattern = r'(?:the\s+)?([A-Z][a-z]+)\s+' + keyword + r'\b'
+            matches = re.finditer(pattern, text, re.IGNORECASE)
+            for match in matches:
+                name = match.group(1)
+                if name not in common_words:
+                    add_entity(name, 'event')
+        
+        # ===== ORGANIZATIONS: Kingdom, guild, order, etc. =====
+        org_keywords = ['guild', 'order', 'council', 'empire', 'society', 'brotherhood', 'faction']
+        for keyword in org_keywords:
+            pattern = r'(?:the\s+)?([A-Z][a-z]+)\s+' + keyword + r'\b'
+            matches = re.finditer(pattern, text, re.IGNORECASE)
+            for match in matches:
+                name = match.group(1)
+                if name not in common_words:
+                    add_entity(name, 'organization')
+        
+        # ===== CONCEPTS: Magic, curse, prophecy, etc. =====
+        concept_keywords = ['magic', 'curse', 'prophecy', 'spell', 'power', 'fate', 'darkness', 'light']
+        for keyword in concept_keywords:
+            pattern = r'\b([A-Z][a-z]+)\s+' + keyword + r'\b'
+            matches = re.finditer(pattern, text, re.IGNORECASE)
+            for match in matches:
+                name = match.group(1)
+                if name not in common_words:
+                    add_entity(name, 'concept')
+        
+        # Convert to formatted entities
         formatted_entities = []
-        for i, name in enumerate(sorted(potential_names), 1):
+        for i, (normalized_name, entity) in enumerate(sorted(entities_dict.items()), 1):
             entity_id = f"ent_{i:06d}"
             formatted_entity = {
                 "id": entity_id,
-                "entityType": "character",
-                "name": name,
+                "entityType": entity['type'],
+                "name": entity['name'],
                 "aliases": [],
                 "facts": [{
                     "key": "source",

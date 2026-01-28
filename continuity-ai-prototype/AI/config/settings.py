@@ -35,5 +35,5 @@ LOG_FILE = "./logs/app.log"
 
 # Performance Configuration
 MAX_CONTEXT_TOKENS = 2000
-RESPONSE_TIMEOUT = 60  # seconds
+RESPONSE_TIMEOUT = 120  # seconds (increased for SLM classification)
 MAX_CONCURRENT_REQUESTS = 10

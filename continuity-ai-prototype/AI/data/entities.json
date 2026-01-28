@@ -2,8 +2,8 @@
   "entities": [
     {
       "id": "ent_000001",
-      "entityType": "character",
-      "name": "Marula",
+      "entityType": "location",
+      "name": "abandoned",
       "aliases": [],
       "facts": [
         {
@@ -17,7 +17,7 @@
     {
       "id": "ent_000002",
       "entityType": "character",
-      "name": "Malvin",
+      "name": "Deep",
       "aliases": [],
       "facts": [
         {
@@ -30,8 +30,8 @@
     },
     {
       "id": "ent_000003",
-      "entityType": "character",
-      "name": "Prince William",
+      "entityType": "concept",
+      "name": "dormant",
       "aliases": [],
       "facts": [
         {
@@ -45,7 +45,7 @@
     {
       "id": "ent_000004",
       "entityType": "character",
-      "name": "Princess Elena",
+      "name": "Drawn",
       "aliases": [],
       "facts": [
         {
@@ -59,7 +59,7 @@
     {
       "id": "ent_000005",
       "entityType": "character",
-      "name": "Sir Lancelot",
+      "name": "Eldervale",
       "aliases": [],
       "facts": [
         {
@@ -72,8 +72,92 @@
     },
     {
       "id": "ent_000006",
+      "entityType": "location",
+      "name": "fading",
+      "aliases": [],
+      "facts": [
+        {
+          "key": "source",
+          "value": "extracted from text",
+          "time": "t_001"
+        }
+      ],
+      "version": 1
+    },
+    {
+      "id": "ent_000007",
       "entityType": "character",
-      "name": "They",
+      "name": "Legends",
+      "aliases": [],
+      "facts": [
+        {
+          "key": "source",
+          "value": "extracted from text",
+          "time": "t_001"
+        }
+      ],
+      "version": 1
+    },
+    {
+      "id": "ent_000008",
+      "entityType": "character",
+      "name": "Liora",
+      "aliases": [],
+      "facts": [
+        {
+          "key": "source",
+          "value": "extracted from text",
+          "time": "t_001"
+        }
+      ],
+      "version": 1
+    },
+    {
+      "id": "ent_000009",
+      "entityType": "concept",
+      "name": "living",
+      "aliases": [],
+      "facts": [
+        {
+          "key": "source",
+          "value": "extracted from text",
+          "time": "t_001"
+        }
+      ],
+      "version": 1
+    },
+    {
+      "id": "ent_000010",
+      "entityType": "location",
+      "name": "soaked",
+      "aliases": [],
+      "facts": [
+        {
+          "key": "source",
+          "value": "extracted from text",
+          "time": "t_001"
+        }
+      ],
+      "version": 1
+    },
+    {
+      "id": "ent_000011",
+      "entityType": "character",
+      "name": "When Liora",
+      "aliases": [],
+      "facts": [
+        {
+          "key": "source",
+          "value": "extracted from text",
+          "time": "t_001"
+        }
+      ],
+      "version": 1
+    },
+    {
+      "id": "ent_000012",
+      "entityType": "concept",
+      "name": "with",
       "aliases": [],
       "facts": [
         {
@@ -85,5 +169,5 @@
       "version": 1
     }
   ],
-  "count": 6
+  "count": 12
 }
