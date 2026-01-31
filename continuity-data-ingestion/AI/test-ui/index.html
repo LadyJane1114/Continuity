@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Continuity - Chatbot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-online {
+            background: #27ae60;
+            box-shadow: 0 0 8px #27ae60;
+        }
+
+        .status-offline {
+            background: #e74c3c;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+            min-height: 600px;
+        }
+
+        .section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            border: 2px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        label {
+            display: block;
+            color: #555;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+            margin-bottom: 15px;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 100%;
+            padding: 14px;
+            font-size: 15px;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #c0392b;
+        }
+
+        .btn-secondary {
+            background: #e8e8e8;
+            color: #333;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #1976d2;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #1565c0;
+            margin-bottom: 15px;
+        }
+
+        .char-count {
+            font-size: 12px;
+            color: #999;
+            margin-top: -10px;
+            margin-bottom: 10px;
+        }
+
+        .response-area {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            min-height: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            line-height: 1.6;
+            color: #333;
+            flex-grow: 1;
+        }
+
+        .response-area p {
+            margin: 0;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .message.success {
+            background: #e8f5e9;
+            border-left: 4px solid #27ae60;
+            color: #2e7d32;
+        }
+
+        .message.error {
+            background: #fee;
+            border-left: 4px solid #e74c3c;
+            color: #c0392b;
+        }
+
+        .message.info {
+            background: #e3f2fd;
+            border-left: 4px solid #1976d2;
+            color: #1565c0;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        .source-item {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            border-left: 3px solid #667eea;
+        }
+
+        .source-label {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 4px;
+        }
+
+        .source-text {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .sources-container {
+            margin-top: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            border-top: 1px solid #e0e0e0;
+            padding-top: 10px;
+        }
+
+        .management-section {
+            background: #fff5f5;
+            border-radius: 15px;
+            padding: 25px;
+            border: 2px solid #f0a0a0;
+            grid-column: 1 / -1;
+        }
+
+        .management-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .management-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .management-card-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .management-card-desc {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .modal-message {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+            padding: 12px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💬 Continuity Chatbot</h1>
+            <p class="subtitle">
+                <span class="status-indicator" id="statusIndicator"></span>
+                <span id="statusText">Connecting...</span>
+            </p>
+        </div>
+
+        <div class="main-content">
+            <!-- LEFT: Train -->
+            <div class="section">
+                <div class="section-title">📚 Train the Chatbot</div>
+
+                <div class="info-box">
+                    Paste story or document content below to train the AI. This data will be stored and used to answer your questions.
+                </div>
+
+                <label for="trainingData">Content to Train *</label>
+                <textarea id="trainingData" placeholder="Paste your story, article, or document here..."></textarea>
+                <div class="char-count"><span id="charCount">0</span> / 30,000 characters</div>
+
+                <button class="btn-primary" onclick="trainVectorDB()">📤 Train Chatbot</button>
+
+                <div id="trainingMessage" style="margin-top: 15px;"></div>
+
+                <div id="trainingStats" style="display: none; margin-top: 15px;">
+                    <div class="stat-card">
+                        <div class="stat-number" id="chunkCount">1</div>
+                        <div class="stat-label">Segments Stored</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Chat -->
+            <div class="section">
+                <div class="section-title">💬 Chat</div>
+
+                <div class="info-box">
+                    Ask questions about the content you trained. The AI will search and answer based on what you've provided.
+                </div>
+
+                <label for="queryText">Your Question *</label>
+                <textarea id="queryText" placeholder="What would you like to know?" style="min-height: 80px;"></textarea>
+
+                <button class="btn-primary" onclick="queryWithAI()">🤖 Get Answer</button>
+
+                <label style="margin-top: 15px; margin-bottom: 10px;">Response:</label>
+                <div class="response-area" id="responseArea">
+                    <p style="color: #999; font-style: italic;">Ask a question to get an answer...</p>
+                </div>
+
+                <div id="queryMessage" style="margin-top: 15px;"></div>
+            </div>
+
+            <!-- Management -->
+            <div class="management-section">
+                <div class="section-title">⚙️ Advanced</div>
+
+                <div class="management-grid">
+                    <div class="management-card">
+                        <div class="management-card-title">🗑️ Clear Database</div>
+                        <div class="management-card-desc">Delete all trained content.</div>
+                        <button class="btn-danger" onclick="clearDatabase()">Clear</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">⚠️ Clear Database?</div>
+            <div class="modal-message">This will delete all trained content. This action cannot be undone.</div>
+            <div class="modal-buttons">
+                <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn-danger" onclick="confirmClearDB()">Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8003';
+        const DEFAULT_USER = 'chatbot_user';
+
+        document.getElementById('trainingData').addEventListener('input', function() {
+            document.getElementById('charCount').textContent = this.value.length;
+        });
+
+        document.getElementById('trainingData').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                e.preventDefault();
+                trainVectorDB();
+            }
+        });
+
+        document.getElementById('queryText').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                e.preventDefault();
+                queryWithAI();
+            }
+        });
+
+        async function checkHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    document.getElementById('statusIndicator').className = 'status-indicator status-online';
+                    document.getElementById('statusText').textContent = 'Connected ✓';
+                    return true;
+                }
+            } catch (error) {
+                document.getElementById('statusIndicator').className = 'status-indicator status-offline';
+                document.getElementById('statusText').textContent = 'Disconnected - Check API';
+                return false;
+            }
+        }
+
+        async function trainVectorDB() {
+            const trainingData = document.getElementById('trainingData').value.trim();
+            const messageDiv = document.getElementById('trainingMessage');
+
+            if (!trainingData) {
+                showMessage(messageDiv, 'Please enter some content to train', 'error');
+                return;
+            }
+
+            const trainBtn = event.target;
+            trainBtn.disabled = true;
+            trainBtn.innerHTML = '<span class="loading-spinner"></span>Training...';
+
+            try {
+                showMessage(messageDiv, 'Processing training data...', 'info');
+
+                const response = await fetch(`${API_BASE}/ingest/story-segment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        text: trainingData, 
+                        user_id: DEFAULT_USER
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    showMessage(messageDiv, `✓ Training complete! ${data.chunks_created} segment(s) stored.`, 'success');
+                    document.getElementById('trainingStats').style.display = 'block';
+                    document.getElementById('chunkCount').textContent = data.chunks_created;
+                    document.getElementById('trainingData').value = '';
+                    document.getElementById('charCount').textContent = '0';
+                } else if (data.status === 'duplicate') {
+                    showMessage(messageDiv, `⚠ Similar data already exists (${(data.duplicate_info.similarity * 100).toFixed(1)}% match)`, 'error');
+                } else {
+                    throw new Error(data.message || 'Training failed');
+                }
+            } catch (error) {
+                showMessage(messageDiv, `Error: ${error.message}`, 'error');
+            } finally {
+                trainBtn.disabled = false;
+                trainBtn.innerHTML = '📤 Train Chatbot';
+            }
+        }
+
+        async function queryWithAI() {
+            const query = document.getElementById('queryText').value.trim();
+            const messageDiv = document.getElementById('queryMessage');
+            const responseArea = document.getElementById('responseArea');
+
+            if (!query) {
+                showMessage(messageDiv, 'Please enter a question', 'error');
+                return;
+            }
+
+            const queryBtn = event.target;
+            queryBtn.disabled = true;
+            queryBtn.innerHTML = '<span class="loading-spinner"></span>Getting Answer...';
+
+            try {
+                showMessage(messageDiv, '', 'info');
+                responseArea.innerHTML = '<p style="color: #999;">Searching knowledge base...</p>';
+
+                const response = await fetch(`${API_BASE}/query`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        query: query, 
+                        user_id: DEFAULT_USER, 
+                        use_context: true 
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    let html = `<div><p>${escapeHtml(data.response)}</p>`;
+                    
+                    if (data.sources && data.sources.length > 0) {
+                        html += `<div class="sources-container">
+                            <strong style="font-size: 12px; color: #666;">📚 Sources:</strong>`;
+                        html += data.sources.map((source, idx) => `
+                            <div class="source-item">
+                                <div class="source-label">Source ${idx + 1}</div>
+                                <div class="source-text">${escapeHtml(source.text.substring(0, 150))}...</div>
+                            </div>
+                        `).join('');
+                        html += `</div>`;
+                    }
+                    
+                    html += `</div>`;
+                    responseArea.innerHTML = html;
+                    showMessage(messageDiv, '✓ Done', 'success');
+                } else {
+                    throw new Error(data.detail || 'Query failed');
+                }
+            } catch (error) {
+                responseArea.innerHTML = `<p style="color: #e74c3c;">Error: ${escapeHtml(error.message)}</p>`;
+                showMessage(messageDiv, `Error: ${error.message}`, 'error');
+            } finally {
+                queryBtn.disabled = false;
+                queryBtn.innerHTML = '🤖 Get Answer';
+            }
+        }
+
+        function showMessage(container, message, type) {
+            if (!message) container.innerHTML = '';
+            else container.innerHTML = `<div class="message ${type}">${escapeHtml(message)}</div>`;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function clearDatabase() {
+            document.getElementById('confirmModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('confirmModal').classList.remove('active');
+        }
+
+        async function confirmClearDB() {
+            const modal = document.getElementById('confirmModal');
+            const btn = modal.querySelector('.btn-danger');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading-spinner"></span>Clearing...';
+
+            try {
+                const response = await fetch(`${API_BASE}/db/clear`, {
+                    method: 'DELETE',
+                    headers: { 'X-Confirm-Delete': 'true' }
+                });
+
+                if (response.ok) {
+                    showMessage(document.getElementById('trainingMessage'), '✓ Database cleared!', 'success');
+                    closeModal();
+                }
+            } catch (error) {
+                showMessage(document.getElementById('trainingMessage'), `Error: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Clear';
+            }
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('confirmModal');
+            if (event.target === modal) closeModal();
+        }
+
+        checkHealth();
+        setInterval(checkHealth, 30000);
+    </script>
+</body>
+</html>
