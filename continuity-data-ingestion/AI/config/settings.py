@@ -19,6 +19,12 @@ TOP_K_RESULTS = 5  # Number of similar documents to retrieve
 CHUNK_SIZE = 512  # Characters per chunk
 CHUNK_OVERLAP = 100  # Overlap between chunks
 
+# Data Ingestion Configuration
+MAX_SEGMENT_LENGTH = int(os.getenv("MAX_SEGMENT_LENGTH", 30000))
+ENABLE_AUTO_CHUNKING = os.getenv("ENABLE_AUTO_CHUNKING", "true").lower() == "true"
+SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", 0.95))
+SEGMENT_COLLECTION_NAME = os.getenv("SEGMENT_COLLECTION_NAME", "story_segments")
+
 # Web API Configuration
 API_HOST = os.getenv("API_HOST", "0.0.0.0")
 API_PORT = int(os.getenv("API_PORT", 8000))
