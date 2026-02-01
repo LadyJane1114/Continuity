@@ -55,6 +55,7 @@ Characters (comma-separated names):"""
         """
         try:
             logger.info(f"Extracting entities from {len(text)} characters of text...")
+<<<<<<< Updated upstream
             logger.info(f"Using extraction mode: {ENTITY_EXTRACTION_MODE}")
             
             if ENTITY_EXTRACTION_MODE == "hybrid":
@@ -72,8 +73,86 @@ Characters (comma-separated names):"""
             # Format entities
             formatted_entities = self._format_entities(entities, time_id)
             logger.info(f"Successfully extracted {len(formatted_entities)} entities")
+=======
+
+            # Step 1: Loose regex capture (high recall, okay with noise)
+            candidates = self._capture_entity_candidates(text)
+            logger.info(f"Initial candidates: {len(candidates)}")
+            print(f"[CANDIDATES] {candidates}")
+
+            # Step 2: Validate each candidate with SLM (in batches to avoid context overflow)
+            validated = []
+            batch_size = 3  # Process only 3 candidates at a time
+
+            for i in range(0, len(candidates), batch_size):
+                batch = candidates[i:i+batch_size]
+                logger.info(f"Processing batch {i//batch_size + 1}: {batch}")
+                print(f"[BATCH {i//batch_size + 1}] Starting validation for: {batch}")
+
+                # Force context reset before each batch
+                try:
+                    self.llm_manager.reset_context()
+                    logger.info("Context reset before batch")
+                except Exception as e:
+                    logger.warning(f"Context reset failed: {e}")
+
+                for idx, candidate in enumerate(batch):
+                    try:
+                        logger.info(f"Validating candidate {idx+1}/{len(batch)}: '{candidate}'")
+                        print(f"[VALIDATING] {candidate}...")
+                        is_entity = await self._validate_entity_candidate(candidate, text)
+                        if is_entity:
+                            validated.append(candidate)
+                            print(f"[ENTITY FOUND] {candidate}")
+                        else:
+                            print(f"[REJECTED] {candidate}")
+                    except Exception as e:
+                        logger.error(f"Error validating '{candidate}': {e}", exc_info=True)
+                        print(f"[ERROR] {candidate}: {e}")
+                        continue
+
+                # Small delay between batches
+                logger.info(f"Batch {i//batch_size + 1} complete, waiting...")
+                await asyncio.sleep(0.2)
+
+            logger.info(f"Validated entities: {len(validated)}")
+
+            # Step 3: Classify each validated entity (also in batches)
+            entities = []
+            for i in range(0, len(validated), batch_size):
+                batch = validated[i:i+batch_size]
+                logger.info(f"Classifying batch {i//batch_size + 1}: {batch}")
+
+                # Force context reset before each batch
+                try:
+                    self.llm_manager.reset_context()
+                except:
+                    pass
+
+                for entity_name in batch:
+                    try:
+                        entity_type = await self._classify_entity_type(entity_name, text)
+                        if entity_type and entity_type != 'none':
+                            entity_dict = {
+                                'name': entity_name,
+                                'type': entity_type
+                            }
+                            entities.append(entity_dict)
+                            print(f"[CLASSIFIED] {entity_name} as {entity_type}")
+                    except Exception as e:
+                        logger.warning(f"Skipping classification for '{entity_name}': {e}")
+                        continue
+
+                # Small delay between batches
+                await asyncio.sleep(0.1)
+
+            # Format entities
+            formatted_entities = self._format_entities(entities, time_id)
+            logger.info(f"Successfully extracted {len(formatted_entities)} entities (hybrid regex+SLM)")
+            print(f"[FINAL ENTITIES] {formatted_entities}")
+>>>>>>> Stashed changes
             return formatted_entities
-            
+
         except Exception as e:
             logger.error(f"Error extracting entities: {e}", exc_info=True)
             return []
@@ -230,73 +309,85 @@ Names:"""
     def _capture_entity_candidates(self, text: str) -> List[str]:
         """
         Capture potential entities using loose regex (high recall).
-        
+
         Args:
             text: Story text
-            
+
         Returns:
             List of candidate entity names
         """
         import re
-        
+
         candidates = set()
-        
+
+        # Common words to exclude (articles, pronouns, common verbs, etc.)
+        stopwords = {
+            'The', 'A', 'An', 'This', 'That', 'These', 'Those', 'It', 'He', 'She',
+            'They', 'We', 'You', 'I', 'My', 'Your', 'His', 'Her', 'Their', 'Our',
+            'Was', 'Were', 'Is', 'Are', 'Be', 'Been', 'Being', 'Have', 'Has', 'Had',
+            'Do', 'Does', 'Did', 'Will', 'Would', 'Could', 'Should', 'May', 'Might',
+            'Must', 'Can', 'When', 'Where', 'Why', 'How', 'What', 'Which', 'Who',
+            'If', 'Then', 'But', 'And', 'Or', 'Not', 'No', 'Yes', 'So', 'As', 'At',
+            'By', 'For', 'From', 'In', 'Of', 'On', 'To', 'With', 'About', 'After',
+            'Before', 'During', 'Since', 'Until', 'While'
+        }
+
         # Capture all capitalized words (including multi-word names)
         capitalized = re.findall(r'\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b', text)
         for word in capitalized:
-            if len(word) > 2 and len(word.split()) <= 3:
+            # Filter out stopwords and very short words
+            if len(word) > 2 and len(word.split()) <= 3 and word not in stopwords:
                 candidates.add(word)
-        
+
         # Also capture keywords patterns
         keywords = ['kingdom', 'castle', 'sword', 'magic', 'battle', 'guild', 'curse']
         for keyword in keywords:
             pattern = r'(?:the\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+' + keyword + r'\b'
             matches = re.findall(pattern, text, re.IGNORECASE)
             for match in matches:
-                if len(match) > 2:
+                if len(match) > 2 and match not in stopwords:
                     candidates.add(match)
-        
+
         logger.debug(f"Captured {len(candidates)} candidates: {sorted(candidates)}")
         return sorted(list(candidates))
 
     async def _validate_entity_candidate(self, candidate: str, text: str) -> bool:
         """
         Use SLM to validate if a candidate is an actual entity.
-        
+
         Args:
             candidate: Potential entity name
             text: Story context
-            
+
         Returns:
             True if it's a real entity, False otherwise
         """
         try:
-            # Show context around the candidate
+            # Very minimal context
             context_match = text.find(candidate)
             if context_match != -1:
-                start = max(0, context_match - 50)
-                end = min(len(text), context_match + len(candidate) + 50)
+                start = max(0, context_match - 15)
+                end = min(len(text), context_match + len(candidate) + 15)
                 context = text[start:end]
             else:
-                context = text[:200]
-            
-            prompt = f"""Is '{candidate}' a real entity name (character, place, object, etc.) in this story? 
-Context: ...{context}...
+                context = text[:50]
 
-Answer only: YES or NO"""
-            
+            # Ultra-short prompt
+            prompt = f"'{candidate}' entity? {context}\nYES/NO:"
+
             response = await self.llm_manager.generate(
                 prompt=prompt,
                 temperature=0.1,
+                reset_context=True,
             )
-            
+
             is_entity = 'YES' in response.upper()
             logger.debug(f"Validation '{candidate}': {is_entity} (response: {response[:50]})")
             return is_entity
-            
+
         except asyncio.TimeoutError:
-            logger.warning(f"Validation timeout for '{candidate}' - assuming entity")
-            return True  # Default to True on timeout
+            logger.warning(f"Validation timeout for '{candidate}' - skipping")
+            return False  # Default to False on timeout to avoid bad data
         except Exception as e:
             logger.warning(f"Validation error for '{candidate}': {e}")
             return False
@@ -304,15 +395,16 @@ Answer only: YES or NO"""
     async def _classify_entity_type(self, entity_name: str, text: str) -> str:
         """
         Use SLM to classify the type of entity.
-        
+
         Args:
             entity_name: Validated entity name
             text: Story context
-            
+
         Returns:
             Entity type: character, location, object, event, organization, concept, or none
         """
         try:
+<<<<<<< Updated upstream
             # Ultra-short context to prevent crashes
             context = text[:150]
             
@@ -323,10 +415,26 @@ Story: {context}
 
 Answer (person/place/thing/none):"""
             
+=======
+            # Very minimal context
+            context_match = text.find(entity_name)
+            if context_match != -1:
+                start = max(0, context_match - 15)
+                end = min(len(text), context_match + len(entity_name) + 15)
+                context = text[start:end]
+            else:
+                context = text[:50]
+
+            # Ultra-short prompt
+            prompt = f"'{entity_name}' type?\n{context}\ncharacter/location/object/event/org/concept:"
+
+>>>>>>> Stashed changes
             response = await self.llm_manager.generate(
                 prompt=prompt,
                 temperature=0.1,
+                reset_context=True,
             )
+<<<<<<< Updated upstream
             
             # Map response
             response_lower = response.strip().lower()
@@ -341,6 +449,32 @@ Answer (person/place/thing/none):"""
             else:
                 return 'none'
             
+=======
+
+            # Extract the type from response
+            response_lower = response.lower().strip()
+            types = ['character', 'location', 'object', 'event', 'organization', 'org', 'concept']
+
+            # First try exact match
+            if response_lower in types:
+                # Map 'org' to 'organization'
+                if response_lower == 'org':
+                    response_lower = 'organization'
+                logger.debug(f"Classification '{entity_name}': {response_lower}")
+                return response_lower
+
+            # Then try substring match
+            for entity_type in types:
+                if entity_type in response_lower:
+                    if entity_type == 'org':
+                        entity_type = 'organization'
+                    logger.debug(f"Classification '{entity_name}': {entity_type}")
+                    return entity_type
+
+            logger.warning(f"Could not classify '{entity_name}', response: {response[:50]}")
+            return 'none'
+
+>>>>>>> Stashed changes
         except Exception as e:
             logger.warning(f"Classification error for '{entity_name}': {e}")
             return 'none'

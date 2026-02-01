@@ -28,18 +28,29 @@ class LLMManager:
 
         # Load model with llama-cpp-python
         # n_gpu_layers: adjust based on your GPU VRAM; 0 for CPU-only
-        # n_ctx: context window size - increased for entity extraction
+        # n_ctx: context window size - extremely small for stability
+        # Using minimal settings to work around GGML assertion bug
         self.llm = Llama(
             model_path=self.model_path,
-            n_ctx=4096,  # wider context for stability
+            n_ctx=256,       # extremely small context (last resort)
             n_threads=4,
             n_gpu_layers=0,  # CPU-only mode
-            n_batch=32,      # smaller batch to avoid GGML assertions
-            n_ubatch=32,
+            n_batch=4,       # minimal batch size
+            n_ubatch=4,      # minimal micro-batch
             verbose=False,
+            use_mlock=False, # Disable memory locking
+            use_mmap=True,   # Use memory mapping
         )
         self.model = self.model_path
         logger.info(f"LLMManager initialized with model: {self.model}")
+
+    def reset_context(self):
+        """Reset the model's KV cache to clear context."""
+        try:
+            self.llm.reset()
+            logger.debug("Model context reset")
+        except Exception as e:
+            logger.warning(f"Failed to reset context: {e}")
 
     async def generate(
         self,
@@ -47,17 +58,26 @@ class LLMManager:
         temperature: float = 0.7,
         top_p: float = 0.9,
         stream: bool = False,
+        reset_context: bool = True,
     ) -> str:
         """Generate a response from the local LLM."""
         loop = asyncio.get_running_loop()
 
         def _run_inference() -> str:
+            # Reset context before each inference to avoid overflow
+            if reset_context:
+                try:
+                    self.llm.reset()
+                    logger.debug("Context reset successful")
+                except Exception as e:
+                    logger.warning(f"Context reset failed: {e}")
+
             response = self.llm(
                 prompt,
                 temperature=temperature,
                 top_p=top_p,
-                max_tokens=256,
-                stop=["</s>", "User:", "\n\n"],
+                max_tokens=8,   # minimal tokens (just enough for YES/NO or type)
+                stop=["</s>", "User:", "\n\n", "\n", ":"],
                 echo=False,
             )
             return response["choices"][0]["text"].strip()
@@ -76,9 +96,13 @@ class LLMManager:
                 )
         except asyncio.TimeoutError:
             logger.error(f"LLM response timeout after {RESPONSE_TIMEOUT}s")
+            # Reset context on timeout
+            self.reset_context()
             raise
         except Exception as e:
             logger.error(f"Error generating LLM response: {e}")
+            # Reset context on error
+            self.reset_context()
             raise
 
     async def _generate_stream(

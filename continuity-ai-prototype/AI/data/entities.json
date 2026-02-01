@@ -3,6 +3,7 @@
     {
       "id": "ent_000001",
       "entityType": "character",
+<<<<<<< Updated upstream
       "name": "Liora",
       "aliases": [],
       "facts": [],
@@ -15,10 +16,31 @@
       "aliases": [],
       "facts": [],
       "version": 1
+=======
+      "name": "Alicia Moreno",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9996975064277649
+    },
+    {
+      "id": "ent_000002",
+      "entityType": "organization",
+      "name": "NeuroPulse Labs",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9956602454185486
+>>>>>>> Stashed changes
     },
     {
       "id": "ent_000003",
       "entityType": "character",
+<<<<<<< Updated upstream
       "name": "Livia",
       "aliases": [],
       "facts": [],
@@ -135,6 +157,169 @@
       "aliases": [],
       "facts": [],
       "version": 1
+=======
+      "name": "James O ’ Connor",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9146754145622253
+    },
+    {
+      "id": "ent_000004",
+      "entityType": "location",
+      "name": "Starview Conference Center",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9915316104888916
+    },
+    {
+      "id": "ent_000005",
+      "entityType": "location",
+      "name": "San Diego",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9991497993469238
+    },
+    {
+      "id": "ent_000006",
+      "entityType": "location",
+      "name": "California",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.999365508556366
+    },
+    {
+      "id": "ent_000007",
+      "entityType": "concept",
+      "name": "Project Orion",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9949033856391907
+    },
+    {
+      "id": "ent_000008",
+      "entityType": "concept",
+      "name": "upcoming",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.5231074094772339
+    },
+    {
+      "id": "ent_000009",
+      "entityType": "concept",
+      "name": "Project",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.5403281450271606
+    },
+    {
+      "id": "ent_000010",
+      "entityType": "concept",
+      "name": "Orion",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.5071442127227783
+    },
+    {
+      "id": "ent_000011",
+      "entityType": "concept",
+      "name": "rollout.",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.7130399346351624
+    },
+    {
+      "id": "ent_000012",
+      "entityType": "concept",
+      "name": "The",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.5398088693618774
+    },
+    {
+      "id": "ent_000013",
+      "entityType": "concept",
+      "name": "meeting began",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.5070430040359497
+    },
+    {
+      "id": "ent_000014",
+      "entityType": "concept",
+      "name": "at",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.5615874528884888
+    },
+    {
+      "id": "ent_000015",
+      "entityType": "concept",
+      "name": "9:30 a.m.",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.5688135623931885
+    },
+    {
+      "id": "ent_000016",
+      "entityType": "concept",
+      "name": "PDT and focused on the",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.5679112672805786
+    },
+    {
+      "id": "ent_000017",
+      "entityType": "concept",
+      "name": "upcoming Project Orion rollout.",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.6343644857406616
+>>>>>>> Stashed changes
     }
   ],
   "count": 17

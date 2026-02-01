@@ -1,13 +1,10 @@
-"""Main entry point for the AI solution."""
+"""Main entry point for entity extraction API."""
 import asyncio
 import logging
 import sys
-from typing import Literal
 
-from database.vector_db import VectorDB
-from models.llm_manager import LLMManager
+from models.ner_extractor import HybridNERExtractor
 from interfaces.web_api import create_app
-from utils.context_manager import ContextManager
 from utils.logger import setup_logging
 from config.settings import API_HOST, API_PORT
 
@@ -16,33 +13,24 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 
-async def run_web_api(vector_db: VectorDB, llm_manager: LLMManager):
+async def run_web_api(ner_extractor: HybridNERExtractor):
     """Run the FastAPI web server."""
     import uvicorn
     import threading
 
-    context_manager = ContextManager()
-    app = create_app(vector_db, llm_manager, context_manager)
+    app = create_app(ner_extractor)
 
-    config = uvicorn.Config(
-        app=app,
-        host=API_HOST,
-        port=API_PORT,
-        log_level="info",
-        server_header=False,
-    )
-    
-    logger.info(f"Starting web API on {API_HOST}:{API_PORT}")
-    
+    logger.info(f"Starting Entity Extraction API on {API_HOST}:{API_PORT}")
+
     # Run uvicorn in a blocking manner with Python's asyncio
     # Use a thread to run the sync uvicorn.run()
     def run_server():
         uvicorn.run(app, host=API_HOST, port=API_PORT, log_level="info")
-    
+
     # Run server in thread so it blocks properly
     thread = threading.Thread(target=run_server, daemon=True)
     thread.start()
-    
+
     # Keep the async function running
     logger.info("Server thread started, keeping process alive...")
     try:
@@ -55,38 +43,20 @@ async def run_web_api(vector_db: VectorDB, llm_manager: LLMManager):
 
 async def main():
     """
-    Main entry point - runs web API server.
+    Main entry point - runs entity extraction API server.
     """
     # Initialize components
-    logger.info("Initializing components...")
-    
-    vector_db = None
-    llm_manager = None
-    
-    try:
-        vector_db = VectorDB()
-        llm_manager = LLMManager()
+    logger.info("Initializing entity extraction system...")
 
-        # Check health
-        logger.info("Checking system health...")
-        llm_ok = await llm_manager.health_check()
-        if not llm_ok:
-            logger.warning("⚠ LLM not available. Ensure the GGUF path is correct and llama-cpp can load it.")
-        
-        db_info = vector_db.get_collection_info()
-        logger.info(f"Vector DB: {db_info['document_count']} documents")
-        
-        # Auto-load NSCC data if DB is empty
-        if db_info['document_count'] == 0:
-            logger.info("Knowledge base is empty, auto-loading NSCC data...")
-            from load_knowledge_base import load_nscc_data
-            load_nscc_data()
-            db_info = vector_db.get_collection_info()
-            logger.info(f"Vector DB now contains: {db_info['document_count']} documents")
+    try:
+        # Initialize NER extractor with BERT model
+        logger.info("Loading BERT NER model...")
+        ner_extractor = HybridNERExtractor(model_name="dslim/bert-base-NER")
+        logger.info("[OK] NER model loaded successfully")
 
         # Run web API server
         logger.info("Starting web API server...")
-        await run_web_api(vector_db, llm_manager)
+        await run_web_api(ner_extractor)
 
     except Exception as e:
         logger.error(f"Fatal error in main: {type(e).__name__}: {e}", exc_info=True)
