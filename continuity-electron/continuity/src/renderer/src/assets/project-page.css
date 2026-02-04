@@ -4,12 +4,12 @@
     --sidebar-width-collapsed: 80px;
 
     /* Brand colors */
-        --cont-orange: #ffab49;
-        --cont-grey: #e5e5e5;
-        --cont-light-blue: #5799bc;
-        --cont-mid-blue: #165085;
-        --cont-white: #ffffff;
-        --cont-black: #000000;
+    --cont-orange: #ffab49;
+    --cont-grey: #e5e5e5;
+    --cont-light-blue: #5799bc;
+    --cont-mid-blue: #165085;
+    --cont-white: #ffffff;
+    --cont-black: #000000;
 }
 
 body {
@@ -95,7 +95,6 @@ body {
 .collapsed .sidebar-link i {
     margin: 0 !important;
 }
-
 
 
 /* Segment upload */
