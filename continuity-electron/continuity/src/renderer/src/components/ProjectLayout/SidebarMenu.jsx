@@ -15,6 +15,7 @@ const SidebarMenu = () => {
 
   return (
     <>
+    
       <div>
         <nav className={`sidebar ${collapsed ? "collapsed" : ""}`}>
           <button className="toggle-btn" onClick={toggleSidebar}>

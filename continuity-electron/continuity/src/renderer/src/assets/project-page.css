@@ -1,3 +1,8 @@
+.project-layout {
+    min-height: 100vh;
+    background-color: #171717;
+}
+
 /* DASHBOARD */
 
 .cont-dashboard {
@@ -21,6 +26,10 @@
     z-index: 100;
     background-color: var(--cont-black);
     color: var(--cont-white);
+}
+.project-content {
+    padding: 20px 30px 0px 60px;
+    margin: 0px 30px 0px 60px;
 }
 
 .sidebar.collapsed {
