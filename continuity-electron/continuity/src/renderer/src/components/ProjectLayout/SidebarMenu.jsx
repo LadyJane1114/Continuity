@@ -1,17 +1,12 @@
-import { useState } from "react"
+
 import { NavLink } from "react-router-dom";
-import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiHome, FiSettings } from 'react-icons/fi';
+import { FaRegPenToSquare } from "react-icons/fa6";
+import { GiPirateCannon } from "react-icons/gi";
 
 
-
-
-
-const SidebarMenu = () => {
-  const [collapsed, setCollapsed] = useState(false);
-
-  const toggleSidebar = () => {
-    setCollapsed(prev => !prev);
-  };
+const SidebarMenu = ({ collapsed, setCollapsed }) => {
+  const toggleSidebar = () => setCollapsed(prev => !prev);
 
   return (
     <>
@@ -24,13 +19,21 @@ const SidebarMenu = () => {
 
           <div className="p-4">
             <h3 className="logo-text">Continuity</h3>
-            <p className="text-muted hide-on-collapse">Menu</p>
           </div>
 
           <div className="nav-links">
-            <NavLink to="cont-dashboard">Home</NavLink>
-            <NavLink to="segment-upload">Upload a Segment</NavLink>
-            <NavLink to="canon-db">My Story Database</NavLink>
+            <NavLink to="cont-dashboard" className="sidebar-link">
+              <FiHome className="sidebar-icon"/> <span className="hide-on-collapse">Dashboard</span>
+            </NavLink>
+            <NavLink to="segment-upload" className="sidebar-link">
+              <FaRegPenToSquare className="sidebar-icon" /><span className="hide-on-collapse">Upload a Segment</span>
+            </NavLink>
+            <NavLink to="canon-db" className="sidebar-link">
+              <GiPirateCannon className="sidebar-icon" /><span className="hide-on-collapse">Canon Database</span>
+            </NavLink>
+            <NavLink to="cont-settings" className="sidebar-link">
+              <FiSettings className="cont-settings" /><span className="hide-on-collapse">Settings</span>
+            </NavLink>
           </div>
         </nav>
       </div>

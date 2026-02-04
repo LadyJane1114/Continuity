@@ -4,6 +4,7 @@ import SegmentUpload from "@renderer/pages/In-Project-Pages/SegmentUpload"
 import ProjectLayout from "./pages/ProjectLayout";
 import Dashboard from "@renderer/pages/In-Project-Pages/Dashboard"
 import CanonDB from "./pages/In-Project-Pages/CanonDB";
+import Settings from "./pages/In-Project-Pages/Settings";
 
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
           <Route path="cont-dashboard" element={<Dashboard />} />
           <Route path="segment-upload" element={<SegmentUpload />} />
           <Route path="canon-db" element={<CanonDB />} />
+          <Route path="cont-settings" element={<Settings />} />
         </Route>
     </Routes>
     </>

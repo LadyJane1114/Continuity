@@ -5,7 +5,7 @@ import { Outlet } from "react-router-dom";
 
 
 const ProjectLayout = () => {
-  const [collapsed, setCollapsed] =useState(false);
+  const [collapsed, setCollapsed] =useState(true);
 
 
   return (
