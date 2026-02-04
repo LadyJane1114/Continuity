@@ -1,6 +1,9 @@
-import { Routes, Route } from "react-router-dom";
-import LaunchPage from "./pages/LaunchPage";
-import ProjectPage from "./pages/ProjectPage";
+import { Routes, Route, Navigate } from "react-router-dom";
+import LaunchPage from "@renderer/pages/LaunchPage";
+import SegmentUpload from "@renderer/pages/In-Project-Pages/SegmentUpload"
+import ProjectLayout from "./pages/ProjectLayout";
+import Dashboard from "@renderer/pages/In-Project-Pages/Dashboard"
+import CanonDB from "./pages/In-Project-Pages/CanonDB";
 
 
 function App() {
@@ -9,8 +12,17 @@ function App() {
   return (
     <>
     <Routes>
-      <Route path="/" element={<LaunchPage/>}/>
-      <Route path="/project" element={<ProjectPage />} />
+      {/* Launch - Not in a project yet */}
+      <Route path="/" element={<LaunchPage />} />
+    
+      {/* Now we're in a project */}
+        <Route path="/project" element={<ProjectLayout />}>
+          {/* default child route */}
+          <Route index element={<Navigate to="cont-dashboard" replace />} />
+          <Route path="cont-dashboard" element={<Dashboard />} />
+          <Route path="segment-upload" element={<SegmentUpload />} />
+          <Route path="canon-db" element={<CanonDB />} />
+        </Route>
     </Routes>
     </>
   )
