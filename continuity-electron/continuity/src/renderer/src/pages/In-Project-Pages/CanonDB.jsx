@@ -2,7 +2,9 @@ import React from 'react'
 
 const CanonDB = () => {
   return (
-    <div>CanonDB</div>
+    <div className='canon-db'>
+      CanonDB
+    </div>
   )
 }
 

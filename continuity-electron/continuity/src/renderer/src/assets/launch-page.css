@@ -1,13 +1,13 @@
-:root{
-    /* Brand colors */
-        --cont-orange: #ffab49;
-        --cont-grey: #e5e5e5;
-        --cont-light-blue: #5799bc;
-        --cont-mid-blue: #165085;
-        --cont-white: #ffffff;
-        --cont-black: #000000;
-}
 
+.launch-page {
+    background-color: var(--cont-black);
+    min-height: 100vh;
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
 .contLogo img {
     width: 200px;
 }
@@ -18,15 +18,17 @@
 
 .card {
     background-color: rgb(39, 39, 39);
+    color: var(--cont-white);
     border-radius: 15px;
     padding-left: 20px;
     padding-right: 20px;
     padding-top: 10px;
     padding-bottom: 10px;
-    font-family: "Montserrat", sans-serif;
+    font-family: var(--cont-text-font);
     font-weight: normal;
     font-style: normal;
     margin-top: 10px;
+    width: 50%;
 }
 
 .card-body {
@@ -49,7 +51,7 @@
 }
 
 .CreateBtn {
-    background-color: #5799bc;
+    background-color: var(--cont-light-blue);
     border-radius: 15px;
     padding: 10px;
     color: white;

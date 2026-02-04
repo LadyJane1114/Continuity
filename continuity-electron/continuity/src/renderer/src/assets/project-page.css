@@ -1,23 +1,14 @@
-/* Sidebar */
-:root {
-    --sidebar-width: 280px;
-    --sidebar-width-collapsed: 80px;
+/* DASHBOARD */
 
-    /* Brand colors */
-    --cont-orange: #ffab49;
-    --cont-grey: #e5e5e5;
-    --cont-light-blue: #5799bc;
-    --cont-mid-blue: #165085;
-    --cont-white: #ffffff;
-    --cont-black: #000000;
-}
-
-body {
+.cont-dashboard {
     overflow-x: hidden;
     margin: 2px;
-    font-family: "Montserrat", sans-serif;
+    font-family: var(--cont-text-font);
+    background-color: #171717;
+    min-height: 100vh;
 }
 
+/* Sidebar */
 .sidebar {
     width: var(--sidebar-width);
     height: 100vh;
@@ -28,7 +19,8 @@ body {
     top: 0;
     left: 0;
     z-index: 100;
-    background-color: #000000;
+    background-color: var(--cont-black);
+    color: var(--cont-white);
 }
 
 .sidebar.collapsed {
@@ -36,7 +28,7 @@ body {
 }
 
 .logo-text {
-    font-family: "Montserrat", sans-serif;
+    font-family: var(--cont-text-font);
     transition: opacity 0.3s ease;
     margin-left: 3px;
 }
@@ -72,7 +64,7 @@ body {
     display: flex;
     flex-direction: column;
     margin: 7px;
-    font-family: "Montserrat", sans-serif;
+    font-family: var(--cont-text-font);
 }
 
 
@@ -109,7 +101,7 @@ body {
     display: block;
     width: 100%;
     box-sizing: border-box;
-    font-family: "Montserrat", sans-serif;
+    font-family: var(--cont-text-font);
     font-size: x-large;
     text-shadow:1px 1px 1px #65abd1;
     padding: 10px 0px;
@@ -121,7 +113,7 @@ textarea {
     resize: vertical;
     line-height: 1.5;
     padding: 0.75rem;
-    font-family: "Montserrat", sans-serif;
+    font-family: var(--cont-text-font);
 }
 
 .form-footer {
@@ -131,24 +123,24 @@ textarea {
     margin-top: 0.5rem;
 }
 .form-footer .characterLength {
-    font-family: "Montserrat", sans-serif;
+    font-family: var(--cont-text-font);
     font-size: smaller;
     color: rgb(153, 156, 168);
 }
 .form-footer button {
-    background-color: #5799bc;
+    background-color: var(--cont-light-blue);
     border-radius: 10px;
     padding: 5px 5px;
-    font-family: "Montserrat", sans-serif;
+    font-family: var(--cont-text-font);
     color: white;
     margin: 5px 0px;
 }
 .form-footer button:disabled {
-    background-color: #165085;
+    background-color: var(--cont-mid-blue);
     color: rgb(153, 156, 168);
 }
 .form-footer button:not(:disabled):hover {
-    background-color: #65abd1;
+    background-color: var(--cont-light-blue);
     cursor: pointer;
 }
 
@@ -169,7 +161,7 @@ textarea {
         /* sits on top of everything */
 }
 .modal-content {
-    background: #165085;
+    background: var(--cont-mid-blue);
     padding: 1rem;
     border-radius: 12px;
     text-align: center;
@@ -182,12 +174,12 @@ textarea {
     margin-top: 1rem;
     padding: 0.5rem 1rem;
     border-radius: 8px;
-    background-color: #5799bc;
-    color: white;
+    background-color: var(--cont-light-blue);
+    color: var(--cont-white);
     border: none;
     cursor: pointer;
-    font-family: "Montserrat", sans-serif;
+    font-family: var(--cont-text-font);
 }
 .modal-content button:hover {
-    background-color: #65abd1;
+    background-color: var(--cont-light-blue);
 }

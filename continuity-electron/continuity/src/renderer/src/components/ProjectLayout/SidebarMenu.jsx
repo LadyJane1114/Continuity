@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { NavLink } from "react-router";
+import { NavLink } from "react-router-dom";
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 
 
@@ -15,8 +15,8 @@ const SidebarMenu = () => {
 
   return (
     <>
-      <div className="d-flex">
-        <nav className={`sidebar d-flex flex-column flex-shrink-0 position-fixed ${collapsed ? "collapsed" : ""}`}>
+      <div>
+        <nav className={`sidebar ${collapsed ? "collapsed" : ""}`}>
           <button className="toggle-btn" onClick={toggleSidebar}>
             {collapsed ? <FiChevronRight size={20} color="#000000" /> : <FiChevronLeft size={20} color="#000000" />}
           </button>
@@ -27,9 +27,9 @@ const SidebarMenu = () => {
           </div>
 
           <div className="nav-links">
-            <NavLink path="dashboard">Home</NavLink>
-            <NavLink path="upload">Upload a Segment</NavLink>
-            <NavLink path="canon">My Story Database</NavLink>
+            <NavLink to="cont-dashboard">Home</NavLink>
+            <NavLink to="segment-upload">Upload a Segment</NavLink>
+            <NavLink to="canon-db">My Story Database</NavLink>
           </div>
         </nav>
       </div>

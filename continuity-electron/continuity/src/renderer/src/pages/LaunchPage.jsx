@@ -4,10 +4,10 @@ import ProjectSelection from '@renderer/components/Launch/ProjectSelection'
 
 const LaunchPage = () => {
   return (
-    <>
+    <div className='launch-page'>
     <Branding/>
     <ProjectSelection/>
-    </>
+    </div>
   )
 }
 

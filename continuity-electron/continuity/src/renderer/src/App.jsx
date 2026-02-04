@@ -19,9 +19,9 @@ function App() {
         <Route path="/project" element={<ProjectLayout />}>
           {/* default child route */}
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="upload" element={<SegmentUpload />} />
-          <Route path="canon" element={<CanonDB />} />
+          <Route path="cont-dashboard" element={<Dashboard />} />
+          <Route path="segment-upload" element={<SegmentUpload />} />
+          <Route path="canon-db" element={<CanonDB />} />
         </Route>
     </Routes>
     </>
