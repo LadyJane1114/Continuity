@@ -82,6 +82,7 @@ class NERExtractor:
         """
         try:
             logger.info(f"Extracting entities from {len(text)} characters of text...")
+            logger.info(f"Text preview: {text[:200]}...")
 
             # Run NER pipeline
             ner_results = self.ner_pipeline(text)
@@ -89,28 +90,54 @@ class NERExtractor:
 
             # Debug: Print first result to see structure
             if ner_results:
-                logger.debug(f"Sample NER result: {ner_results[0]}")
+                logger.info(f"Sample NER result: {ner_results[0]}")
+            else:
+                logger.warning(f"NER returned no results for text: {text[:100]}...")
 
             # Convert to our format
             entities = []
             entity_counter = 1
 
             for result in ner_results:
-                # Extract entity text - use 'word' field which contains the aggregated entity
-                entity_name = result.get('word', '').strip()
+                # Extract entity text using start/end positions from original text
+                # This avoids issues with subword tokenization (e.g., "##euroPulse")
+                start = result.get('start')
+                end = result.get('end')
+
+                if start is not None and end is not None:
+                    entity_name = text[start:end].strip()
+                else:
+                    # Fallback to 'word' field if positions not available
+                    entity_name = result.get('word', '').replace('##', '').strip()
+
                 entity_label = result.get('entity_group', 'MISC')
                 confidence = result.get('score', 0.0)
 
-                # Skip empty or very short entities
+                # Skip invalid entities
                 if len(entity_name) < 2:
                     logger.debug(f"Skipping short entity: '{entity_name}'")
+                    continue
+
+                # Skip entities that are just punctuation or single letters with punctuation
+                if len(entity_name.replace('.', '').replace(',', '').replace('-', '').strip()) < 2:
+                    logger.debug(f"Skipping punctuation/fragment: '{entity_name}'")
+                    continue
+
+                # Skip entities that start or end with punctuation (except valid cases like "U.S.")
+                if entity_name[0] in '.,;:!?-' or (entity_name[-1] in '.,;:!?-' and '.' not in entity_name):
+                    logger.debug(f"Skipping entity with invalid punctuation: '{entity_name}'")
+                    continue
+
+                # Skip single letters (unless it's a valid abbreviation like "U.S.")
+                if len(entity_name) == 1 and entity_name.isalpha():
+                    logger.debug(f"Skipping single letter: '{entity_name}'")
                     continue
 
                 # Map to our entity types
                 entity_type = self.label_mapping.get(entity_label, 'concept')
 
-                # Only include high-confidence entities
-                if confidence >= 0.5:
+                # Only include high-confidence entities (higher threshold to reduce false positives)
+                if confidence >= 0.85:
                     entity_dict = {
                         'id': f"ent_{entity_counter:06d}",
                         'entityType': entity_type,
@@ -149,12 +176,24 @@ class HybridNERExtractor(NERExtractor):
         
         # Story-specific patterns
         self.story_patterns = {
+            'character': [
+                # Roles/titles (the lighthouse keeper, the king, etc.)
+                r'\bthe\s+(lighthouse\s+keeper|king|queen|prince|princess|wizard|knight|merchant|captain|doctor|professor|detective|priest|monk|sailor|guard|soldier)\b',
+                # Capitalized names
+                r'\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:said|asked|replied|thought|wondered|remembered|knew|felt)\b',
+            ],
             'object': [
+                # Magical/special items (capitalized)
                 r'\b(Sacred|Magic|Ancient|Legendary|Cursed)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b',
                 r'\b([A-Z][a-z]+)\s+(Sword|Shield|Staff|Amulet|Ring|Crown|Orb)\b',
+                # Common story objects
+                r'\b(?:the|a)\s+(letter|map|key|book|scroll|diary|journal|compass|lantern|mirror)\b',
             ],
             'location': [
-                r'\b([A-Z][a-z]+)\s+(Kingdom|Castle|Tower|Forest|Mountain|City|Village)\b',
+                # Capitalized locations
+                r'\b([A-Z][a-z]+)\s+(Kingdom|Castle|Tower|Forest|Mountain|City|Village|Island|Bay|Harbor)\b',
+                # Common locations
+                r'\b(?:the|a)\s+(lighthouse|tavern|inn|church|cathedral|library|market|square|bridge|gate|harbor|port)\b',
             ],
             'event': [
                 r'\b(Battle|War|Siege|Festival|Ceremony)\s+of\s+([A-Z][a-z]+)\b',

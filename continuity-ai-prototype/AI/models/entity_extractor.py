@@ -5,7 +5,6 @@ import re
 import asyncio
 from typing import List, Dict, Any
 from models.llm_manager import LLMManager
-from config.settings import ENTITY_EXTRACTION_MODE
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +43,7 @@ Characters (comma-separated names):"""
 
     async def extract_entities(self, text: str, time_id: str = "t_000") -> List[Dict[str, Any]]:
         """
-        Extract entities from story text using configured method.
+        Extract entities from story text using hybrid regex + SLM validation.
 
         Args:
             text: Story text to analyze
@@ -55,25 +54,6 @@ Characters (comma-separated names):"""
         """
         try:
             logger.info(f"Extracting entities from {len(text)} characters of text...")
-<<<<<<< Updated upstream
-            logger.info(f"Using extraction mode: {ENTITY_EXTRACTION_MODE}")
-            
-            if ENTITY_EXTRACTION_MODE == "hybrid":
-                logger.info("Mode: HYBRID (regex candidates + SLM classification)")
-                entities = await self._extract_entities_hybrid(text)
-            elif ENTITY_EXTRACTION_MODE == "slm-only":
-                logger.info("Mode: SLM-ONLY (full SLM extraction)")
-                entities = await self._extract_entities_slm_only(text)
-            else:
-                logger.error(f"Unknown extraction mode: {ENTITY_EXTRACTION_MODE}")
-                return []
-            
-            logger.info(f"Extracted {len(entities)} entities")
-            
-            # Format entities
-            formatted_entities = self._format_entities(entities, time_id)
-            logger.info(f"Successfully extracted {len(formatted_entities)} entities")
-=======
 
             # Step 1: Loose regex capture (high recall, okay with noise)
             candidates = self._capture_entity_candidates(text)
@@ -150,161 +130,11 @@ Characters (comma-separated names):"""
             formatted_entities = self._format_entities(entities, time_id)
             logger.info(f"Successfully extracted {len(formatted_entities)} entities (hybrid regex+SLM)")
             print(f"[FINAL ENTITIES] {formatted_entities}")
->>>>>>> Stashed changes
             return formatted_entities
 
         except Exception as e:
             logger.error(f"Error extracting entities: {e}", exc_info=True)
             return []
-
-    async def _extract_entities_hybrid(self, text: str) -> List[Dict[str, Any]]:
-        """
-        Hybrid approach: Use regex to capture candidates, then SLM to classify.
-        
-        Args:
-            text: Story text to analyze
-            
-        Returns:
-            List of entity dictionaries
-        """
-        try:
-            # Step 1: Loose regex capture (high recall, okay with noise)
-            candidates = self._capture_entity_candidates(text)
-            logger.info(f"Initial candidates: {len(candidates)}")
-            
-            # Step 2: Classify each candidate
-            entities = []
-            for i, candidate in enumerate(candidates, 1):
-                try:
-                    logger.info(f"Processing {i}/{len(candidates)}: '{candidate}'")
-                    entity_type = await asyncio.wait_for(
-                        self._classify_entity_type(candidate, text),
-                        timeout=10.0
-                    )
-                    if entity_type and entity_type != 'none':
-                        entity_dict = {
-                            'name': candidate,
-                            'type': entity_type
-                        }
-                        entities.append(entity_dict)
-                        logger.info(f"+ '{candidate}' -> {entity_type}")
-                    else:
-                        logger.info(f"- '{candidate}' (rejected)")
-                except asyncio.TimeoutError:
-                    logger.warning(f"Timeout on '{candidate}', skipping")
-                except Exception as e:
-                    logger.error(f"Error on '{candidate}': {e}")
-            
-            logger.info(f"Hybrid extraction complete: {len(entities)} entities found")
-            return entities
-            
-        except Exception as e:
-            logger.error(f"Error in hybrid extraction: {e}", exc_info=True)
-            return []
-
-    async def _extract_entities_slm_only(self, text: str) -> List[Dict[str, Any]]:
-        """
-        SLM-only approach: Use SLM to directly extract entity names.
-        
-        Args:
-            text: Story text to analyze
-            
-        Returns:
-            List of entity dictionaries
-        """
-        try:
-            # Truncate to prevent model issues
-            context = text[:400] if len(text) > 400 else text
-            
-            prompt = f"""Example Story:
-Deep within the mist‑soaked kingdom of Eldervale, a young mage named Liora discovered a silver seed glowing at the heart of an abandoned forest temple.
-
-Example Names:
-Liora
-
-Now extract character names from this story. List one per line.
-
-Story: {context}
-
-Names:"""
-            
-            logger.info("Sending extraction request to SLM...")
-            response = await self.llm_manager.generate(
-                prompt=prompt,
-                temperature=0.1,
-            )
-            
-            # Log full response for debugging
-            logger.info(f"=== SLM FULL RESPONSE ===")
-            logger.info(f"{response}")
-            logger.info(f"=== END RESPONSE ===")
-            
-            # Parse names line by line
-            entities = []
-            try:
-                lines = response.strip().split('\n')
-                logger.info(f"Found {len(lines)} lines in response")
-                
-                for line in lines:
-                    line = line.strip()
-                    if not line or len(line) < 2:
-                        continue
-                    
-                    # Skip lines that look like explanations or metadata
-                    if any(x in line.lower() for x in [':', '-', 'name', 'here', 'story', 'the ']):
-                        continue
-                    
-                    # Skip if it's all lowercase (probably not a name)
-                    if line.islower():
-                        continue
-                    
-                    # This is likely a name
-                    name = line.strip()
-                    if len(name) > 2 and len(name) < 50:
-                        entities.append({
-                            'name': name,
-                            'type': 'character'  # For now, assume all extracted names are characters
-                        })
-                        logger.info(f"+ Found name: '{name}'")
-                    
-            except Exception as e:
-                logger.error(f"Error parsing SLM response: {e}")
-                logger.debug(f"Response was: {response[:300]}")
-            
-            logger.info(f"SLM-only extraction complete: {len(entities)} names found")
-            return entities
-            
-        except Exception as e:
-            logger.error(f"Error in SLM-only extraction: {e}", exc_info=True)
-            return []
-
-    def _normalize_entity_type(self, entity_type: str) -> str:
-        """
-        Normalize entity type to standard types.
-        
-        Args:
-            entity_type: Raw entity type from SLM
-            
-        Returns:
-            Normalized entity type or 'none'
-        """
-        entity_type_lower = entity_type.lower().strip()
-        
-        # Map variations to standard types
-        if any(x in entity_type_lower for x in ['person', 'character', 'human', 'animal']):
-            return 'character'
-        elif any(x in entity_type_lower for x in ['place', 'location', 'city', 'building', 'land']):
-            return 'location'
-        elif any(x in entity_type_lower for x in ['thing', 'object', 'item', 'weapon', 'tool']):
-            return 'object'
-        elif any(x in entity_type_lower for x in ['event', 'incident', 'happening']):
-            return 'event'
-        elif any(x in entity_type_lower for x in ['organization', 'org', 'group', 'company', 'faction']):
-            return 'organization'
-        elif any(x in entity_type_lower for x in ['concept', 'ability', 'power', 'idea']):
-            return 'concept'
-        else:
-            return 'none'
 
     def _capture_entity_candidates(self, text: str) -> List[str]:
         """
@@ -404,18 +234,6 @@ Names:"""
             Entity type: character, location, object, event, organization, concept, or none
         """
         try:
-<<<<<<< Updated upstream
-            # Ultra-short context to prevent crashes
-            context = text[:150]
-            
-            # Very simple prompt
-            prompt = f"""Is "{entity_name}" a person/character, place/location, or thing/object?
-
-Story: {context}
-
-Answer (person/place/thing/none):"""
-            
-=======
             # Very minimal context
             context_match = text.find(entity_name)
             if context_match != -1:
@@ -428,28 +246,11 @@ Answer (person/place/thing/none):"""
             # Ultra-short prompt
             prompt = f"'{entity_name}' type?\n{context}\ncharacter/location/object/event/org/concept:"
 
->>>>>>> Stashed changes
             response = await self.llm_manager.generate(
                 prompt=prompt,
                 temperature=0.1,
                 reset_context=True,
             )
-<<<<<<< Updated upstream
-            
-            # Map response
-            response_lower = response.strip().lower()
-            logger.debug(f"'{entity_name}' -> '{response_lower}'")
-            
-            if 'person' in response_lower or 'character' in response_lower:
-                return 'character'
-            elif 'place' in response_lower or 'location' in response_lower:
-                return 'location'
-            elif 'thing' in response_lower or 'object' in response_lower:
-                return 'object'
-            else:
-                return 'none'
-            
-=======
 
             # Extract the type from response
             response_lower = response.lower().strip()
@@ -474,7 +275,6 @@ Answer (person/place/thing/none):"""
             logger.warning(f"Could not classify '{entity_name}', response: {response[:50]}")
             return 'none'
 
->>>>>>> Stashed changes
         except Exception as e:
             logger.warning(f"Classification error for '{entity_name}': {e}")
             return 'none'

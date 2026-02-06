@@ -3,324 +3,234 @@
     {
       "id": "ent_000001",
       "entityType": "character",
-<<<<<<< Updated upstream
-      "name": "Liora",
-      "aliases": [],
-      "facts": [],
-      "version": 1
-    },
-    {
-      "id": "ent_000002",
-      "entityType": "character",
-      "name": "Temple",
-      "aliases": [],
-      "facts": [],
-      "version": 1
-=======
-      "name": "Alicia Moreno",
+      "name": "Tara Lipinski",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.9996975064277649
+      "confidence": 0.9952405691146851
     },
     {
       "id": "ent_000002",
-      "entityType": "organization",
-      "name": "NeuroPulse Labs",
+      "entityType": "concept",
+      "name": "American",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.9956602454185486
->>>>>>> Stashed changes
+      "confidence": 0.9992984533309937
     },
     {
       "id": "ent_000003",
-      "entityType": "character",
-<<<<<<< Updated upstream
-      "name": "Livia",
-      "aliases": [],
-      "facts": [],
-      "version": 1
-    },
-    {
-      "id": "ent_000004",
-      "entityType": "character",
-      "name": "Eldervale",
-      "aliases": [],
-      "facts": [],
-      "version": 1
-    },
-    {
-      "id": "ent_000005",
-      "entityType": "character",
-      "name": "Ancient",
-      "aliases": [],
-      "facts": [],
-      "version": 1
-    },
-    {
-      "id": "ent_000006",
-      "entityType": "character",
-      "name": "Constellations",
-      "aliases": [],
-      "facts": [],
-      "version": 1
-    },
-    {
-      "id": "ent_000007",
-      "entityType": "character",
-      "name": "Light",
-      "aliases": [],
-      "facts": [],
-      "version": 1
-    },
-    {
-      "id": "ent_000008",
-      "entityType": "character",
-      "name": "Hidden",
-      "aliases": [],
-      "facts": [],
-      "version": 1
-    },
-    {
-      "id": "ent_000009",
-      "entityType": "character",
-      "name": "Path",
-      "aliases": [],
-      "facts": [],
-      "version": 1
-    },
-    {
-      "id": "ent_000010",
-      "entityType": "character",
-      "name": "Mist",
-      "aliases": [],
-      "facts": [],
-      "version": 1
-    },
-    {
-      "id": "ent_000011",
-      "entityType": "character",
-      "name": "Seed",
-      "aliases": [],
-      "facts": [],
-      "version": 1
-    },
-    {
-      "id": "ent_000012",
-      "entityType": "character",
-      "name": "Legends",
-      "aliases": [],
-      "facts": [],
-      "version": 1
-    },
-    {
-      "id": "ent_000013",
-      "entityType": "character",
-      "name": "Time",
-      "aliases": [],
-      "facts": [],
-      "version": 1
-    },
-    {
-      "id": "ent_000014",
-      "entityType": "character",
-      "name": "Hidden",
-      "aliases": [],
-      "facts": [],
-      "version": 1
-    },
-    {
-      "id": "ent_000015",
-      "entityType": "character",
-      "name": "Path",
-      "aliases": [],
-      "facts": [],
-      "version": 1
-    },
-    {
-      "id": "ent_000016",
-      "entityType": "character",
-      "name": "Mist",
-      "aliases": [],
-      "facts": [],
-      "version": 1
-    },
-    {
-      "id": "ent_000017",
-      "entityType": "character",
-      "name": "Kingdom",
-      "aliases": [],
-      "facts": [],
-      "version": 1
-=======
-      "name": "James O ’ Connor",
+      "entityType": "concept",
+      "name": "Olympic",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.9146754145622253
+      "confidence": 0.9416582584381104
     },
     {
       "id": "ent_000004",
-      "entityType": "location",
-      "name": "Starview Conference Center",
+      "entityType": "concept",
+      "name": "Champions Series Final",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.9915316104888916
+      "confidence": 0.9977927803993225
     },
     {
       "id": "ent_000005",
       "entityType": "location",
-      "name": "San Diego",
+      "name": "U.S.",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.9991497993469238
+      "confidence": 0.9576045870780945
     },
     {
       "id": "ent_000006",
-      "entityType": "location",
-      "name": "California",
+      "entityType": "concept",
+      "name": "Olympic",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.999365508556366
+      "confidence": 0.9975887537002563
     },
     {
       "id": "ent_000007",
-      "entityType": "concept",
-      "name": "Project Orion",
+      "entityType": "character",
+      "name": "Michelle Kwan",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.9949033856391907
+      "confidence": 0.9959588050842285
     },
     {
       "id": "ent_000008",
       "entityType": "concept",
-      "name": "upcoming",
+      "name": "American",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.5231074094772339
+      "confidence": 0.9996680021286011
     },
     {
       "id": "ent_000009",
       "entityType": "concept",
-      "name": "Project",
+      "name": "Olympics",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.5403281450271606
+      "confidence": 0.9564421772956848
     },
     {
       "id": "ent_000010",
-      "entityType": "concept",
-      "name": "Orion",
+      "entityType": "location",
+      "name": "Na",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.5071442127227783
+      "confidence": 0.9982544779777527
     },
     {
       "id": "ent_000011",
-      "entityType": "concept",
-      "name": "rollout.",
+      "entityType": "location",
+      "name": "gano",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.7130399346351624
+      "confidence": 0.9607055187225342
     },
     {
       "id": "ent_000012",
-      "entityType": "concept",
-      "name": "The",
+      "entityType": "organization",
+      "name": "NBC",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.5398088693618774
+      "confidence": 0.9973606467247009
     },
     {
       "id": "ent_000013",
-      "entityType": "concept",
-      "name": "meeting began",
+      "entityType": "character",
+      "name": "Terry Gannon",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.5070430040359497
+      "confidence": 0.9995570778846741
     },
     {
       "id": "ent_000014",
-      "entityType": "concept",
-      "name": "at",
+      "entityType": "character",
+      "name": "Johnny Weir",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.5615874528884888
+      "confidence": 0.9996918439865112
     },
     {
       "id": "ent_000015",
-      "entityType": "concept",
-      "name": "9:30 a.m.",
+      "entityType": "organization",
+      "name": "Association",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.5688135623931885
+      "confidence": 0.9910808205604553
     },
     {
       "id": "ent_000016",
-      "entityType": "concept",
-      "name": "PDT and focused on the",
+      "entityType": "character",
+      "name": "Lipin",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.5679112672805786
+      "confidence": 0.8563299775123596
     },
     {
       "id": "ent_000017",
-      "entityType": "concept",
-      "name": "upcoming Project Orion rollout.",
+      "entityType": "organization",
+      "name": "NBC",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.6343644857406616
->>>>>>> Stashed changes
+      "confidence": 0.9976474642753601
+    },
+    {
+      "id": "ent_000018",
+      "entityType": "character",
+      "name": "Terry Gannon",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9995930790901184
+    },
+    {
+      "id": "ent_000019",
+      "entityType": "character",
+      "name": "Johnny Weir",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9997024536132812
+    },
+    {
+      "id": "ent_000020",
+      "entityType": "organization",
+      "name": "Army",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.6524200439453125
+    },
+    {
+      "id": "ent_000021",
+      "entityType": "concept",
+      "name": "Seven Years' War",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.996705174446106
     }
   ],
-  "count": 17
+  "count": 21
 }
