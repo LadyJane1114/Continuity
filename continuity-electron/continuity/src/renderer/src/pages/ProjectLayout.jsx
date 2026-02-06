@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import '@renderer/assets/project-page.css'
 import SidebarMenu from '@renderer/components/ProjectLayout/SidebarMenu'
 import { Outlet } from "react-router-dom";
@@ -6,6 +6,10 @@ import { Outlet } from "react-router-dom";
 
 const ProjectLayout = () => {
   const [collapsed, setCollapsed] =useState(true);
+  useEffect(() => {
+    document.body.style.overflow = collapsed ? "" : "hidden";
+  }, [collapsed]);
+
 
 
   return (
