@@ -5,6 +5,7 @@ import ProjectLayout from "./pages/ProjectLayout";
 import Dashboard from "@renderer/pages/In-Project-Pages/Dashboard"
 import CanonDB from "./pages/In-Project-Pages/CanonDB";
 import Settings from "./pages/In-Project-Pages/Settings";
+import StorySegments from "./pages/In-Project-Pages/StorySegments";
 
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
           <Route index element={<Navigate to="cont-dashboard" replace />} />
           <Route path="cont-dashboard" element={<Dashboard />} />
           <Route path="segment-upload" element={<SegmentUpload />} />
+          <Route path="story-segments" element={<StorySegments/>}/>
           <Route path="canon-db" element={<CanonDB />} />
           <Route path="cont-settings" element={<Settings />} />
         </Route>

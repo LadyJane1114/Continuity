@@ -2,7 +2,10 @@
 import { NavLink } from "react-router-dom";
 import { FiChevronLeft, FiChevronRight, FiHome, FiSettings } from 'react-icons/fi';
 import { FaRegPenToSquare } from "react-icons/fa6";
-import { GiPirateCannon,GiExitDoor } from "react-icons/gi";
+import { GiPirateCannon, GiExitDoor, GiCannon } from "react-icons/gi";
+import { MdCollectionsBookmark } from "react-icons/md";
+import { TbDatabaseHeart } from "react-icons/tb";
+
 
 
 const SidebarMenu = ({ collapsed, setCollapsed }) => {
@@ -36,8 +39,11 @@ const SidebarMenu = ({ collapsed, setCollapsed }) => {
             <NavLink to="segment-upload" className="sidebar-link">
               <FaRegPenToSquare className="sidebar-icon" /><span className="hide-on-collapse">Upload a Segment</span>
             </NavLink>
+            <NavLink to="story-segments" className="sidebar-link">
+              <MdCollectionsBookmark className="sidebar-icon" /><span className="hide-on-collapse">My Story Segments</span>
+            </NavLink>
             <NavLink to="canon-db" className="sidebar-link">
-              <GiPirateCannon className="sidebar-icon" /><span className="hide-on-collapse">Canon Database</span>
+            <TbDatabaseHeart className="sidebar-icon" /><span className="hide-on-collapse">Canon Database</span>
             </NavLink>
             <NavLink to="cont-settings" className="sidebar-link">
               <FiSettings className="sidebar-icon" /><span className="hide-on-collapse">Settings</span>
