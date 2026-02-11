@@ -1,25 +1,34 @@
 import { useState } from 'react'
-// import TestModal from '@renderer/components/ProjectPage/TestModal';
+import mockAnalysisSegment from '../../components/TempAISub/AISub'
+import EntityAnalysisCard from '../../components/ProjectLayout/EntityAnalysisCard';
 
 const SegmentUpload = () => {
     const [segment,setSegment] = useState("");
-    // const [showModal, setShowModal] = useState(false);
+    const [analysis, setAnalysis] = useState(null);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async(e) => {
         e.preventDefault();
 
         if (!segment.trim()) return;
 
         // later, send to main backend
         console.log(segment);
-        
-        //show simulation modal
-        setShowModal(true);
+        const result = await mockAnalysisSegment(segment);
+        setAnalysis(result);
+
     }
-    // const handleCloseModal = () => {
-    //     setShowModal(false);
-    //     setSegment(""); // optional: clear textarea after submit
-    // }
+
+    const handleAccept =(index) => {
+        const newFacts = [... analysis.facts];
+        newFacts[index].accepted = true;
+        setAnalysis({...analysis, facts: newFacts});
+    }
+
+    const handleReject = (index) => {
+        const newFacts = [...analysis.facts];
+        newFacts[index].accepted = false;
+        setAnalysis({ ...analysis, facts: newFacts });
+    }
     
   return (
     <>
@@ -46,13 +55,18 @@ const SegmentUpload = () => {
         </div>
     </form>
 
-    {/* Modal for simulation purposes only */}
-          {/* {showModal && (
-              <TestModal
-                  message="You submitted your text!"
-                  onClose={handleCloseModal}
-              />
-          )} */}
+    {/* Only render below if analysis exists */}
+    {analysis && (
+        <div className='segment-summary' style={{padding:"2rem", backgroundColor:"red",margin:"5px", borderRadius:"8px"} }>{analysis.summary}</div>
+    )}
+    {analysis && (
+        <EntityAnalysisCard 
+            entities={analysis.entities} 
+            facts={analysis.facts} 
+            editable={true} 
+            onAccept={handleAccept} 
+            onReject={handleReject}/>
+    )}
     </>
   )
 }

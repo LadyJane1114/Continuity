@@ -231,3 +231,55 @@ textarea {
 .modal-content button:hover {
     background-color: var(--cont-light-blue);
 }
+
+
+/* Story Segment page card accordion */
+.segment-card {
+    border-radius: 8px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    width: 90%;
+}
+
+.segment-card-header {
+    background: var(--cont-light-blue);
+    padding: 12px;
+}
+
+.segment-card-body {
+    padding: 12px;
+    background-color: var(--cont-mid-blue);
+}
+
+.accordion-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.accordion-body.open {
+    max-height: 300px;
+    padding: 12px;
+    background: #7e0202;
+    border-top: 1px solid #ddd;
+}
+
+
+/* Entity cards */
+.entity-card {
+    border: 1px solid #ccc;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.fact-list {
+    list-style: disc;
+    margin-left: 20px;
+    padding-left: 0;
+}
+
+.fact-actions button {
+    margin-left: 8px;
+    font-size: 0.85rem;
+}
