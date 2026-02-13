@@ -241,4 +241,18 @@ textarea {
 .fact-actions button {
     margin-left: 8px;
     font-size: 0.85rem;
+    font-family: var(--cont-text-font);
+    color: white;
+    background-color: var(--cont-light-blue);
+    border-radius: 10px;
+}
+
+.fact-actions button:disabled {
+    background-color: var(--cont-mid-blue);
+    color: rgb(153, 156, 168);
+}
+
+.fact-actions button:not(:disabled):hover {
+    background-color: var(--cont-light-blue);
+    cursor: pointer;
 }
