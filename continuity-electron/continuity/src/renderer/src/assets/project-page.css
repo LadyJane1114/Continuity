@@ -192,47 +192,6 @@ textarea {
     cursor: pointer;
 }
 
-
-/* testing modal (temporary) */
-.modal-overlay {
-    position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: rgba(0, 0, 0, 0.5);
-        /* dark semi-transparent background */
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-        /* sits on top of everything */
-}
-.modal-content {
-    background: var(--cont-mid-blue);
-    padding: 1rem;
-    border-radius: 12px;
-    text-align: center;
-    min-width: 300px;
-    max-width: 90%;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-}
-
-.modal-content button {
-    margin-top: 1rem;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    background-color: var(--cont-light-blue);
-    color: var(--cont-white);
-    border: none;
-    cursor: pointer;
-    font-family: var(--cont-text-font);
-}
-.modal-content button:hover {
-    background-color: var(--cont-light-blue);
-}
-
-
 /* Story Segment page card accordion */
 .segment-card {
     border-radius: 8px;
