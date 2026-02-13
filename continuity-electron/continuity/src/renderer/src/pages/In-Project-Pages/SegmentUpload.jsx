@@ -2,7 +2,7 @@ import { useState } from 'react'
 import mockAnalysisSegment from '../../components/TempAISub/AISub'
 import EntityAnalysisCard from '../../components/ProjectLayout/EntityAnalysisCard';
 
-const SegmentUpload = () => {
+const SegmentUpload = ({setSegments}) => {
     const [segment,setSegment] = useState("");
     const [analysis, setAnalysis] = useState(null);
 
@@ -16,6 +16,14 @@ const SegmentUpload = () => {
         const result = await mockAnalysisSegment(segment);
         setAnalysis(result);
 
+        // Add new segment to app level state
+        setSegments(prev => [...prev, {
+            id: Date.now(),
+            title: `Segment ${prev.length + 1}`,
+            summary: result.summary,
+            text: segment,
+            entities: result.entities
+        }])
     }
 
     const handleAccept = (entityId, factId) => {

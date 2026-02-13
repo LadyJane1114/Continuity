@@ -2,7 +2,7 @@
 import { NavLink } from "react-router-dom";
 import { FiChevronLeft, FiChevronRight, FiHome, FiSettings } from 'react-icons/fi';
 import { FaRegPenToSquare } from "react-icons/fa6";
-import { GiPirateCannon, GiExitDoor, GiCannon } from "react-icons/gi";
+import { GiExitDoor } from "react-icons/gi";
 import { MdCollectionsBookmark } from "react-icons/md";
 import { TbDatabaseHeart } from "react-icons/tb";
 
