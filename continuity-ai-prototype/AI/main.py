@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 
 async def run_web_api(ner_extractor: HybridNERExtractor):
     """Run the FastAPI web server."""
-    import uvicorn
-    import threading
+    import uvicorn # type: ignore
+    import threading # type: ignore
 
     app = create_app(ner_extractor)
 

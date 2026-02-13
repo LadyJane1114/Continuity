@@ -1,32 +1,32 @@
-# AI Assistant with RAG - Phi 4 Edition
+# Entity Extraction API
 
-An intelligent assistant powered by local Phi 4 GGUF models, vector embeddings, and RAG (Retrieval-Augmented Generation).
+A minimal entity extraction system powered by local LLM (Phi-4/DeepSeek) for analyzing story text and identifying characters, objects, locations, events, organizations, and concepts.
 
 ## Features
 
-- **Local LLM**: Phi 4 reasoning model running via llama-cpp (GGUF)
-- **Vector Database**: ChromaDB for semantic search
-- **RAG Pipeline**: Context-aware responses using document retrieval
-- **Web API**: FastAPI REST interface for integrations
-- **Discord Bot**: Native Discord bot interface
-- **Conversation Memory**: Per-user session management
-- **Streaming**: Async streaming responses
+- **Local LLM**: Phi-4 or DeepSeek model running via llama-cpp (GGUF)
+- **Hybrid Extraction**: Regex pattern matching + LLM validation + LLM classification
+- **Entity Storage**: JSON-based persistent storage
+- **Web API**: FastAPI REST interface
+- **Streaming**: Async streaming extraction for long texts
 
 ## Requirements
 
 - Python 3.9+
-- 20-30GB RAM (for Q6_K Phi 4)
+- 8-16GB RAM (for Q4/Q6 quantized models)
 - `llama-cpp-python` installed (via requirements)
-- Phi 4 Q6_K GGUF downloaded locally (e.g., `phi-4-reasoning-q6_k.gguf`)
+- GGUF model file downloaded locally
 
 ## Installation
 
 ### 1. Set up environment
 
 ```bash
-cd "c:\Hackathon 26"
+cd continuity-ai-prototype/AI
 python -m venv venv
-venv\Scripts\activate
+venv\Scripts\activate  # Windows
+# or
+source venv/bin/activate  # Linux/Mac
 ```
 
 ### 2. Install dependencies
@@ -37,101 +37,158 @@ pip install -r requirements.txt
 
 ### 3. Configure environment
 
-Create `.env` file in project root:
+Create `.env` file in the AI directory:
 
 ```env
-MODEL_PATH=./models/phi-4-reasoning-q6_k.gguf
-DISCORD_TOKEN=your_token_here
+MODEL_PATH=./models/DeepSeek-R1-Distill-Llama-8B-Q4_K_M.gguf
 API_HOST=0.0.0.0
 API_PORT=8000
 LOG_LEVEL=INFO
 ```
 
-### 4. Add your knowledge base
+### 4. Download a model
 
-Create a script or use the API to add documents:
-
-```python
-from database.vector_db import VectorDB
-
-db = VectorDB()
-db.add_documents([
-    "Your document text here...",
-    "Another document...",
-])
-```
+Download a GGUF model file and place it in the `models/` directory:
+- Phi-4 Q6_K: https://huggingface.co/bartowski/Phi-4-GGUF
+- DeepSeek-R1-Distill Q4: https://huggingface.co/bartowski/DeepSeek-R1-Distill-Llama-8B-GGUF
 
 ## Usage
 
-### Ensure model is available
-
-Place your GGUF file locally (default path `./models/phi-4-reasoning-q6_k.gguf`). Adjust `MODEL_PATH` in `.env` if needed.
-
 ### Run the application
 
-**Web API only:**
-```bash
-python main.py --mode web
-```
-
-**Discord Bot only:**
-```bash
-python main.py --mode discord
-```
-
-**Both (default):**
 ```bash
 python main.py
 ```
 
+The API will start on `http://localhost:8000`
+
 ### API Endpoints
 
-- `GET /health` - Health check
-- `POST /query` - Process a query
-- `POST /query-stream` - Stream response
-- `POST /documents` - Add documents to knowledge base
-- `GET /db-info` - Vector DB statistics
-- `DELETE /history/{user_id}` - Clear user history
+#### Health Check
+**GET** `/health`
 
-### Example API calls
-
-**Query:**
-```bash
-curl -X POST http://localhost:8000/query \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "What is machine learning?",
-    "user_id": "user123",
-    "use_context": true
-  }'
+Response:
+```json
+{
+  "status": "healthy",
+  "model": "./models/DeepSeek-R1-Distill-Llama-8B-Q4_K_M.gguf",
+  "llm": true
+}
 ```
 
-**Add documents:**
-```bash
-curl -X POST http://localhost:8000/documents \
-  -H "Content-Type: application/json" \
-  -d '{
-    "documents": [
-      "Machine learning is a subset of AI...",
-      "Neural networks are inspired by..."
-    ],
-    "metadata": [
-      {"source": "article1"},
-      {"source": "article2"}
-    ]
-  }'
+#### Extract Entities
+**POST** `/entities/extract`
+
+Request:
+```json
+{
+  "text": "In the Faraway Kingdom, Princess Elara wielded the Sacred Sword against the Dark Guild.",
+  "time_id": "t_001"
+}
 ```
 
-### Discord Bot
-
-Mention the bot in a message:
+Response:
+```json
+{
+  "message": "Extracted 4 entities",
+  "count": 4,
+  "entities": [
+    {
+      "id": "ent_000001",
+      "entityType": "location",
+      "name": "Faraway Kingdom",
+      "aliases": [],
+      "facts": [{"key": "source", "value": "extracted from text", "time": "t_001"}],
+      "version": 1
+    },
+    {
+      "id": "ent_000002",
+      "entityType": "character",
+      "name": "Elara",
+      "aliases": [],
+      "facts": [{"key": "source", "value": "extracted from text", "time": "t_001"}],
+      "version": 1
+    }
+  ],
+  "entity_ids": ["ent_000001", "ent_000002", "ent_000003", "ent_000004"]
+}
 ```
-@YourBot What is in your knowledge base?
+
+#### Stream Entity Extraction
+**POST** `/entities/extract-stream`
+
+Returns NDJSON stream with status updates.
+
+#### Get All Entities
+**GET** `/entities`
+
+#### Get Entity by ID
+**GET** `/entities/{entity_id}`
+
+#### Get Entities by Type
+**GET** `/entities/type/{entity_type}`
+
+Types: `character`, `location`, `object`, `event`, `organization`, `concept`
+
+#### Search Entities
+**GET** `/entities/search/{query}`
+
+#### Update Entity
+**PUT** `/entities/{entity_id}`
+
+Request:
+```json
+{
+  "updates": {
+    "aliases": ["Princess Elara"],
+    "facts": [{"key": "title", "value": "Princess", "time": "t_002"}]
+  }
+}
 ```
 
-Commands:
-- `!help` - Show help
-- `!clear` - Clear conversation history
+#### Delete Entity
+**DELETE** `/entities/{entity_id}`
+
+#### Get Entity Statistics
+**GET** `/entities-stats`
+
+#### Clear All Entities
+**DELETE** `/entities`
+
+## How It Works
+
+### Entity Extraction Process
+
+1. **Regex Capture** (High Recall):
+   - Finds capitalized words (potential names)
+   - Pattern matches for locations ("X Kingdom"), objects ("X Sword"), etc.
+
+2. **LLM Validation** (Precision Filter):
+   - Each candidate is validated by the LLM
+   - Reduces false positives from common words
+
+3. **LLM Classification**:
+   - Validated entities are classified into types
+   - Formatted with IDs, facts, and timestamps
+
+### Entity Format
+
+```json
+{
+  "id": "ent_000001",
+  "entityType": "character",
+  "name": "Mara Ellison",
+  "aliases": ["Mara", "Detective Ellison"],
+  "facts": [
+    {
+      "key": "occupation",
+      "value": "detective",
+      "time": "t_001"
+    }
+  ],
+  "version": 1
+}
+```
 
 ## Project Structure
 
@@ -139,51 +196,19 @@ Commands:
 ├── config/
 │   └── settings.py          # Configuration
 ├── models/
-│   ├── llm_manager.py       # Phi 4 via llama-cpp
-│   └── embedder.py          # Embedding model
+│   ├── llm_manager.py       # LLM via llama-cpp
+│   └── entity_extractor.py  # Entity extraction logic
 ├── database/
-│   └── vector_db.py         # ChromaDB interface
-├── rag/
-│   ├── pipeline.py          # RAG orchestration
-│   └── prompt_builder.py    # Prompt construction
+│   └── entity_store.py      # JSON storage
 ├── interfaces/
-│   ├── web_api.py           # FastAPI routes
-│   └── discord_bot.py       # Discord commands
+│   └── web_api.py           # FastAPI routes
 ├── utils/
-│   ├── context_manager.py   # Session management
 │   └── logger.py            # Logging setup
+├── data/
+│   └── entities.json        # Stored entities
 ├── main.py                  # Entry point
 └── requirements.txt
 ```
-
-## Architecture
-
-```
-User Input (Web/Discord)
-        ↓
-Parse & Validate
-        ↓
-Embed Query
-        ↓
-Vector Search (ChromaDB)
-        ↓
-Retrieve Context
-        ↓
-Build RAG Prompt
-        ↓
-Phi 4 (llama-cpp)
-        ↓
-Stream/Format Response
-        ↓
-Return to User
-```
-
-## Performance Tips
-
-- **Warm up model**: First inference is slower, subsequent calls are faster
-- **Batch embeddings**: Add multiple documents at once
-- **Adjust top_k**: Lower values (3-5) for faster retrieval
-- **GPU acceleration**: Configure Ollama for GPU if available
 
 ## Troubleshooting
 
@@ -192,13 +217,14 @@ Return to User
 - Confirm the GGUF file exists at that location
 
 **"Out of memory"**
-- Reduce model context or use smaller quantization
-- Check system RAM availability
+- Use a smaller quantization (Q4 instead of Q6)
+- Reduce `n_ctx` in `llm_manager.py`
+
+**Slow extraction**
+- Normal for CPU-only mode
+- Consider GPU acceleration by adjusting `n_gpu_layers` in `llm_manager.py`
 
 ## License
 
 MIT
 
-## Contributing
-
-Contributions welcome! Please open an issue or PR.

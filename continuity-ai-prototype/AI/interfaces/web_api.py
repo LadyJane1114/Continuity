@@ -1,9 +1,9 @@
 """FastAPI web interface for entity extraction."""
 import logging
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException # type: ignore
+from fastapi.middleware.cors import CORSMiddleware # type: ignore
+from fastapi.responses import StreamingResponse # type: ignore
+from pydantic import BaseModel # type: ignore
 from typing import List, Dict, Any
 import json
 

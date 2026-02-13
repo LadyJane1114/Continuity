@@ -3,13 +3,13 @@
     {
       "id": "ent_000001",
       "entityType": "character",
-      "name": "Tara Lipinski",
+      "name": "Calvin F. Duncan",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.9952405691146851
+      "confidence": 0.9967302680015564
     },
     {
       "id": "ent_000002",
@@ -20,84 +20,84 @@
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.9992984533309937
+      "confidence": 0.9996259212493896
     },
     {
       "id": "ent_000003",
-      "entityType": "concept",
-      "name": "Olympic",
+      "entityType": "location",
+      "name": "Louisiana State Penitentiary",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.9416582584381104
+      "confidence": 0.9896965026855469
     },
     {
       "id": "ent_000004",
-      "entityType": "concept",
-      "name": "Champions Series Final",
+      "entityType": "character",
+      "name": "Duncan",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.9977927803993225
+      "confidence": 0.9991594552993774
     },
     {
       "id": "ent_000005",
-      "entityType": "location",
-      "name": "U.S.",
+      "entityType": "character",
+      "name": "Duncan",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.9576045870780945
+      "confidence": 0.9991955161094666
     },
     {
       "id": "ent_000006",
-      "entityType": "concept",
-      "name": "Olympic",
+      "entityType": "organization",
+      "name": "United States Supreme Court",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.9975887537002563
+      "confidence": 0.9471903443336487
     },
     {
       "id": "ent_000007",
-      "entityType": "character",
-      "name": "Michelle Kwan",
+      "entityType": "organization",
+      "name": "Lewis & Clark Law School",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.9959588050842285
+      "confidence": 0.9950650930404663
     },
     {
       "id": "ent_000008",
-      "entityType": "concept",
-      "name": "American",
+      "entityType": "character",
+      "name": "Ken Kane",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.9996680021286011
+      "confidence": 0.9995105266571045
     },
     {
       "id": "ent_000009",
       "entityType": "concept",
-      "name": "Olympics",
+      "name": "Tokyo Ghoul",
       "aliases": [],
       "facts": [],
       "firstMentionedAt": "t_001",
       "lastUpdatedAt": "t_001",
       "version": 1,
-      "confidence": 0.9564421772956848
+      "confidence": 0.8760982751846313
     },
     {
       "id": "ent_000010",

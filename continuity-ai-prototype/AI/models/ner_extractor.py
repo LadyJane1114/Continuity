@@ -1,8 +1,8 @@
 """Token classification-based entity extraction using transformers."""
 import logging
 from typing import List, Dict, Any
-from transformers import pipeline, AutoTokenizer, AutoModelForTokenClassification
-import torch
+from transformers import pipeline, AutoTokenizer, AutoModelForTokenClassification # type: ignore
+import torch # type: ignore
 
 logger = logging.getLogger(__name__)
 
