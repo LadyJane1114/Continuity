@@ -1,6 +1,7 @@
 .project-layout {
     min-height: 100vh;
     background-color: #171717;
+    font-family: var(--cont-text-font);
 }
 
 /* DASHBOARD */
@@ -8,7 +9,6 @@
 .cont-dashboard {
     overflow-x: hidden;
     margin: 2px;
-    font-family: var(--cont-text-font);
     background-color: #171717;
     min-height: 100vh;
 }

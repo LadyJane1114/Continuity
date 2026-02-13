@@ -18,17 +18,38 @@ const SegmentUpload = () => {
 
     }
 
-    const handleAccept =(index) => {
-        const newFacts = [... analysis.facts];
-        newFacts[index].accepted = true;
-        setAnalysis({...analysis, facts: newFacts});
-    }
+    const handleAccept = (entityId, factId) => {
+        setAnalysis(prev => ({
+            ...prev,
+            entities: prev.entities.map(e => {
+                if (e.id !== entityId) return e; // leave other entities unchanged
 
-    const handleReject = (index) => {
-        const newFacts = [...analysis.facts];
-        newFacts[index].accepted = false;
-        setAnalysis({ ...analysis, facts: newFacts });
-    }
+                return {
+                    ...e,
+                    facts: e.facts.map(f =>
+                        f.id === factId ? { ...f, accepted: true } : f
+                    )
+                };
+            })
+        }));
+    };
+
+    const handleReject = (entityId, factId) => {
+        setAnalysis(prev => ({
+            ...prev,
+            entities: prev.entities.map(e => {
+                if (e.id !== entityId) return e;
+
+                return {
+                    ...e,
+                    facts: e.facts.map(f =>
+                        f.id === factId ? { ...f, accepted: false } : f
+                    )
+                };
+            })
+        }));
+    };
+
     
   return (
     <>
@@ -56,17 +77,18 @@ const SegmentUpload = () => {
     </form>
 
     {/* Only render below if analysis exists */}
-    {analysis && (
-        <div className='segment-summary' style={{padding:"2rem", backgroundColor:"red",margin:"5px", borderRadius:"8px"} }>{analysis.summary}</div>
-    )}
-    {analysis && (
-        <EntityAnalysisCard 
-            entities={analysis.entities} 
-            facts={analysis.facts} 
-            editable={true} 
-            onAccept={handleAccept} 
-            onReject={handleReject}/>
-    )}
+        {analysis && (
+            <div className='segment-summary' style={{padding:"2rem", backgroundColor:"red",margin:"5px", borderRadius:"8px"} }>{analysis.summary}</div>
+        )}
+        {analysis && analysis.entities.map(entity => (
+            <EntityAnalysisCard
+                key={entity.id}
+                entity={entity}
+                editable={true}
+                onAccept={handleAccept}
+                onReject={handleReject}
+            />
+        ))}
     </>
   )
 }
