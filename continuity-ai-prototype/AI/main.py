@@ -1,18 +1,20 @@
 """Main entry point for entity extraction API with facts."""
 import asyncio
 import logging
+from pathlib import Path
 import sys
 
 from models.ner_extractor import HybridNERExtractor
 from interfaces.web_api import create_app
 from utils.logger import setup_logging
-from config.settings import API_HOST, API_PORT, FACT_MODEL_PATH
+from config.settings import API_HOST, API_PORT, EXPORT_JSON_DIR, FACT_MODEL_PATH
 from models.fact_extractor import FactExtractor
 from models.llm_manager import LLMManager  # NEW: Phi-4 mini manager
 
 # Setup logging
 setup_logging()
 logger = logging.getLogger(__name__)
+Path(EXPORT_JSON_DIR).mkdir(parents=True, exist_ok=True)
 
 async def run_web_api(ner_extractor: HybridNERExtractor):
     """Run the FastAPI web server."""

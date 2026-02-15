@@ -41,3 +41,9 @@ LOG_FILE = "./logs/app.log"
 # ---------------- Performance Configuration ----------------
 RESPONSE_TIMEOUT = 120  # seconds for LLM classification
 MAX_CONCURRENT_REQUESTS = 10
+
+
+# Export directory (where we write the final response JSON)
+EXPORT_JSON_DIR = os.getenv("EXPORT_JSON_DIR", "./exports")
+# Ensure absolute path resolution if you like (optional)
+EXPORT_JSON_DIR = str(Path(EXPORT_JSON_DIR).resolve())
