@@ -1,56 +1,43 @@
-"""Local LLM management using llama-cpp-python and Phi 4."""
 import asyncio
 import logging
+import time
 from pathlib import Path
 from typing import AsyncGenerator
-import time
 
 from llama_cpp import Llama
-
 from config.settings import MODEL_PATH, RESPONSE_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
 
 class LLMManager:
-    """Manages interactions with a local Phi 4 GGUF model via llama-cpp-python."""
+    """Local LLM manager (llama-cpp)."""
 
     def __init__(self, model_path: str = MODEL_PATH):
-        """Initialize the LLM manager and load the model."""
         self.model_path = model_path
         if not Path(self.model_path).exists():
-            raise FileNotFoundError(
-                f"Model file not found at {self.model_path}. Set MODEL_PATH to your GGUF file."
-            )
+            raise FileNotFoundError(f"Model not found: {self.model_path}")
 
-        # Ensure single inference at a time (llama-cpp is not thread-safe)
         self._lock = asyncio.Lock()
-
-        # Load model with llama-cpp-python
-        # n_gpu_layers: adjust based on your GPU VRAM; 0 for CPU-only
-        # n_ctx: context window size - extremely small for stability
-        # Using minimal settings to work around GGML assertion bug
         self.llm = Llama(
             model_path=self.model_path,
-            n_ctx=256,       # extremely small context (last resort)
+            n_ctx=256,
             n_threads=4,
-            n_gpu_layers=0,  # CPU-only mode
-            n_batch=4,       # minimal batch size
-            n_ubatch=4,      # minimal micro-batch
+            n_gpu_layers=0,
+            n_batch=4,
+            n_ubatch=4,
             verbose=False,
-            use_mlock=False, # Disable memory locking
-            use_mmap=True,   # Use memory mapping
+            use_mlock=False,
+            use_mmap=True,
         )
-        self.model = self.model_path
-        logger.info(f"LLMManager initialized with model: {self.model}")
+        logger.info("LLMManager initialized with model: %s", self.model_path)
 
     def reset_context(self):
-        """Reset the model's KV cache to clear context."""
         try:
             self.llm.reset()
-            logger.debug("Model context reset")
+            logger.debug("KV cache reset")
         except Exception as e:
-            logger.warning(f"Failed to reset context: {e}")
+            logger.warning("KV cache reset failed: %s", e)
 
     async def generate(
         self,
@@ -60,58 +47,46 @@ class LLMManager:
         stream: bool = False,
         reset_context: bool = True,
     ) -> str:
-        """Generate a response from the local LLM."""
         loop = asyncio.get_running_loop()
 
-        def _run_inference() -> str:
-            # Reset context before each inference to avoid overflow
+        def _run() -> str:
             if reset_context:
                 try:
                     self.llm.reset()
-                    logger.debug("Context reset successful")
                 except Exception as e:
-                    logger.warning(f"Context reset failed: {e}")
-
-            response = self.llm(
+                    logger.warning("Context reset failed: %s", e)
+            resp = self.llm(
                 prompt,
                 temperature=temperature,
                 top_p=top_p,
-                max_tokens=8,   # minimal tokens (just enough for YES/NO or type)
+                max_tokens=8,
                 stop=["</s>", "User:", "\n\n", "\n", ":"],
                 echo=False,
             )
-            return response["choices"][0]["text"].strip()
+            return (resp["choices"][0]["text"] or "").strip()
 
         try:
             async with self._lock:
                 if stream:
                     tokens = []
-                    async for token in self._generate_stream(prompt, temperature, top_p):
-                        tokens.append(token)
+                    async for t in self._generate_stream(prompt, temperature, top_p):
+                        tokens.append(t)
                     return "".join(tokens)
-
                 return await asyncio.wait_for(
-                    loop.run_in_executor(None, _run_inference),
-                    timeout=RESPONSE_TIMEOUT,
+                    loop.run_in_executor(None, _run), timeout=RESPONSE_TIMEOUT
                 )
         except asyncio.TimeoutError:
-            logger.error(f"LLM response timeout after {RESPONSE_TIMEOUT}s")
-            # Reset context on timeout
+            logger.error("LLM response timeout after %ss", RESPONSE_TIMEOUT)
             self.reset_context()
             raise
         except Exception as e:
-            logger.error(f"Error generating LLM response: {e}")
-            # Reset context on error
+            logger.error("LLM generate error: %s", e)
             self.reset_context()
             raise
 
     async def _generate_stream(
-        self,
-        prompt: str,
-        temperature: float,
-        top_p: float,
+        self, prompt: str, temperature: float, top_p: float
     ) -> AsyncGenerator[str, None]:
-        """Stream response tokens from the LLM."""
         loop = asyncio.get_running_loop()
 
         def _get_stream():
@@ -131,7 +106,7 @@ class LLMManager:
                 if token:
                     yield token
         except Exception as e:
-            logger.error(f"Error in stream generation: {e}")
+            logger.error("LLM stream error: %s", e)
             raise
 
     async def generate_json(
@@ -141,10 +116,9 @@ class LLMManager:
         max_tokens: int = 256,
         timeout_seconds: int | None = None,
     ) -> str:
-        """Generate JSON response from the local LLM with appropriate settings."""
         loop = asyncio.get_running_loop()
 
-        def _run_inference() -> str:
+        def _run() -> str:
             start = time.time()
             logger.info(
                 "LLM JSON start (temp=%.2f, max_tokens=%d, prompt_len=%d)",
@@ -152,12 +126,12 @@ class LLMManager:
                 max_tokens,
                 len(prompt),
             )
-            response = None
             text = ""
+            resp = None
 
-            # First attempt: chat completion for chat-optimized models
+            # Try chat completion first
             try:
-                response = self.llm.create_chat_completion(
+                resp = self.llm.create_chat_completion(
                     messages=[
                         {"role": "system", "content": "You are a precise JSON extractor. Reply only with JSON."},
                         {"role": "user", "content": prompt},
@@ -167,85 +141,63 @@ class LLMManager:
                     max_tokens=max_tokens,
                     stop=[],
                 )
-                text = (response["choices"][0]["message"].get("content") or "").strip()
+                text = (resp["choices"][0]["message"].get("content") or "").strip()
             except Exception as chat_err:
-                logger.debug(f"Chat completion not available, falling back: {chat_err}")
+                logger.debug("Chat completion not available: %s", chat_err)
 
-            # Fallback: instruction-style completion if chat path produced nothing
+            # Fallback to instruction completion
             if not text:
-                instruction_prompt = (
-                    "### Instruction:\n"
-                    f"{prompt}\n"
-                    "### Response:\n"
-                )
-                response = self.llm(
-                    instruction_prompt,
+                instr = f"### Instruction:\n{prompt}\n### Response:\n"
+                resp = self.llm(
+                    instr,
                     temperature=temperature,
                     top_p=0.95,
                     max_tokens=max_tokens,
-                    stop=[],  # No extra stop tokens; let model finish
+                    stop=[],
                     echo=False,
                 )
-                text = (response["choices"][0].get("text") or "").strip()
+                text = (resp["choices"][0].get("text") or "").strip()
 
-            duration = time.time() - start
-            logger.info(
-                "LLM JSON done in %.2fs; response length=%d",
-                duration,
-                len(text),
-            )
+            dur = time.time() - start
+            logger.info("LLM JSON done in %.2fs; len=%d", dur, len(text))
 
             if not text:
                 logger.warning(
-                    "LLM returned empty text; raw response keys=%s choices=%s",
-                    list(response.keys()) if response else [],
-                    response.get("choices") if response else None,
+                    "LLM returned empty text; keys=%s choices=%s",
+                    list(resp.keys()) if resp else [],
+                    (resp.get("choices") if resp else None),
                 )
-                logger.info(f"Raw response payload: {response}")
 
-            # Remove any thinking tags if they appear
-            if "<think>" in text:
+            # Trim any think tags if present (HTML-escaped style handled upstream as needed)
+            if "<think>" in text and "</think>" in text:
                 text = text.split("</think>")[-1].strip()
+            if "&lt;think&gt;" in text and "&lt;/think&gt;" in text:
+                text = text.split("&lt;/think&gt;")[-1].strip()
             return text
 
         try:
             async with self._lock:
-                timeout_seconds = timeout_seconds or min(max(RESPONSE_TIMEOUT, 60), 120)
-                return await asyncio.wait_for(
-                    loop.run_in_executor(None, _run_inference),
-                    timeout=timeout_seconds,
-                )
+                to = timeout_seconds or min(max(RESPONSE_TIMEOUT, 60), 120)
+                return await asyncio.wait_for(loop.run_in_executor(None, _run), timeout=to)
         except asyncio.TimeoutError:
-            logger.error(
-                "LLM JSON response timeout after %.0fs (prompt length=%d)",
-                timeout_seconds,
-                len(prompt),
-            )
+            logger.error("LLM JSON timeout after %.0fs (prompt len=%d)", to, len(prompt))
             raise
         except Exception as e:
-            logger.error(f"Error generating LLM JSON response: {e}")
+            logger.error("LLM generate_json error: %s", e)
             raise
 
     async def health_check(self) -> bool:
-        """Quick health check: verify the model file exists and basic call works."""
         if not Path(self.model_path).exists():
-            logger.warning(f"Model file missing at {self.model_path}")
+            logger.warning("Model file missing: %s", self.model_path)
             return False
+        loop = asyncio.get_running_loop()
+
+        def _probe() -> bool:
+            _ = self.llm("hi", max_tokens=1)
+            return True
 
         try:
-            loop = asyncio.get_running_loop()
-
-            def _probe() -> bool:
-                # Lightweight single-token probe
-                _ = self.llm("hi", max_tokens=1)
-                return True
-
-            return await asyncio.wait_for(
-                loop.run_in_executor(None, _probe),
-                timeout=5.0,
-            )
+            return await asyncio.wait_for(loop.run_in_executor(None, _probe), timeout=5.0)
         except Exception as e:
-            logger.error(f"Health check failed: {e}")
+            logger.error("Health check failed: %s", e)
             return False
-
-
