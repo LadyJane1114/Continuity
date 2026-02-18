@@ -1,4 +1,4 @@
-
+//THIS SHOULD ALL BE IN SERVICES BUT I THOUGHT OF THAT TOO LATE AND I'M NOT MOVING IT NOW
 
 const mockAnalysisSegment = async (text) => {
     await delay(600);

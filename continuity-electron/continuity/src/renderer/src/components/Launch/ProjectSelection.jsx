@@ -1,33 +1,84 @@
-import React from 'react'
-import {Link, useNavigate} from "react-router-dom"
+import { useEffect, useState } from "react";
+import {useNavigate} from "react-router-dom"
+import projectService from "../../services/projectService";
 
 const ProjectSelection = () => {
     const navigate = useNavigate();
+    const [project, setProject] = useState(null);
+    const [projectName, setProjectName] = useState("")
+    const [isCreating, setIsCreating] = useState(false)
+
+    useEffect(()=> {
+        const checkProject = async ()=> {
+            const existing = await projectService.loadProject();
+            setProject(existing);
+        }
+        checkProject();
+    }, [])
+
+    const handleCreateStart = () => {
+        setIsCreating(true);
+    }
+
+    const handleCreateConfirm = async ()=> {
+        if(!projectName.trim()) return;
+        
+        await projectService.createProject(projectName);
+        navigate("/project");
+    }
+
+    const handleLoad = () => {
+        navigate("/project");
+    }
+
+    const handleRemoveProject = async () =>{
+        const RUSure = window.confirm("Are you sure you want to remove this project? This action cannot be undone.");
+        if(!RUSure)return;
+
+        await projectService.clearProject();
+        setProject(null);
+        setIsCreating(false);
+        setProjectName("");
+    }
 
   return (
     <>
     <div className='card'>
         <div className='card-body'>
             <div className='card-text'>
-                <h3>Create a new Project</h3>
-                <p>Create a new Continuity project with a new body of work.</p>
+                {project ? (
+                    <>
+                    <h3>Load Existing Project</h3>
+                    <p>{project.name}</p>
+                    </>
+                ):(
+                    <>
+                    <h3>Create a new Project</h3>
+                    <p>Create a new Continuity project with a new body of work.</p>
+                    </>
+                    
+                )}
             </div>
-            {/* technically this button shouldn't just navigate to the project it should allow you to name the project and then when you name it, it'll take you to the project page, but for right now it's just taking you to the project page for the sake of time. */}
+
             <div className='card-button'>
-                <button className="CreateBtn" onClick={() => navigate("/project")}>
-                    Create
-                </button>
+                {project ? (
+                    <button className="LoadBtn" onClick={handleLoad}>Load Project</button>
+                ):(
+                    !isCreating ? (
+                        <button className="CreateBtn" onClick={handleCreateStart}>Create New Project</button>
+                    ):(
+                        <>
+                        <input className="progNameInput" type="text" value={projectName} onChange={(e)=>setProjectName(e.target.value)} placeholder="Enter Project Name"/>
+                        <button className="CreateBtn" onClick={handleCreateConfirm}>Confirm Project Name</button>
+                        </>
+                    )
+                )}
+                {project && (
+                    <button className="DeleteBtn" onClick={handleRemoveProject}>Delete Project</button>
+                )}
             </div>
-            
         </div>
     </div>
-    {/* this button is for later when we have the ability to have multiple project, but right now we don't, so I'm just saving it for later. (it's also nto even really the way I would do the button, I just want to remember that I want it to exist. The code for this would look more like the above, but the buttons would look slightly different (CSS available in launch-page.css)) */}
-    {/* <div className='card'>
-        <div className='card-body'>
-            <h3>Open an Existing Project</h3>
-            <a href='#' className='LoadBtn'>Load</a>
-        </div>
-    </div> */}
     </>
   )
 }
