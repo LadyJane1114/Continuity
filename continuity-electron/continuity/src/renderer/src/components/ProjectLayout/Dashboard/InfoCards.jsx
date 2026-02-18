@@ -1,6 +1,6 @@
 
 
-const InfoCards = () => {
+const InfoCards = ({project}) => {
   return (
     <div>InfoCards</div>
   )
