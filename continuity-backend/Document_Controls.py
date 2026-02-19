@@ -3,12 +3,12 @@ import json
 from tinydb import TinyDB, Query
 
 db = TinyDB('cannon.json') # Main Database file
-# Table/Dpcuments in db
+# Tables/Documents in db
 project = db.table("project")
 story = db.table("story")
 event = db.table("event")
 
-# Projects
+# -------------- Projects -------------------#
 def create_project(name, description):
     project_meta = Project(name=name, description=description)
     project.insert(project_meta.__dict__)
@@ -20,6 +20,11 @@ def modify_project(project_id, name, description):
     return
 
 def delete_project(project_id):
+    project_stories = story.get(Query().project_id == project_id)
+    for s in project_stories:
+        event.remove(Query().story_id == s.id)
+
+    story.remove(Query().project_id == project_id)
     project.remove(Query().id == project_id)
     return
 
@@ -29,7 +34,7 @@ def get_project(project_id):
 def get_all_projects():
     return project.all()
 
-# Stories
+# -------------- Stories  -------------------#
 # Create a story
 def create_story(project_id, title, body):
     story_meta = Story(project_id=project_id, title=title, body=body)
@@ -37,7 +42,9 @@ def create_story(project_id, title, body):
     return story_meta
 
 # Get all stories
-def get_all_stories():
+def get_all_stories(project_id=None):
+    if project_id:
+        return story.search(Query().project_id == project_id)
     return story.all()
 
 # Get story by id
@@ -46,6 +53,10 @@ def get_story(story_id):
 
 # Delete story
 def delete_story(story_id):
+    # Clear Events associated with story first
+    event.remove(Query().story_id == story_id)
+
+    # Clear story from db
     story.remove(Query().id == story_id)
     return
 
@@ -55,14 +66,17 @@ def modify_story(story_id, title, body):
     story.update(story_meta.__dict__, Query().id == story_id)
     return story_meta
 
-# events
+#------------------ Events--------------------#
 # Create an event
 def create_event(story_id, name, description, participants):
     event_meta = Event(story_id=story_id, name=name, description=description, participants=participants)
     event.insert(event_meta.__dict__)
     return event_meta
+
 # Get all events
-def get_all_events():
+def get_all_events(story_id):
+    if story_id:
+        return event.search(Query().story_id == story_id)
     return event.all()
 
 # Get event by id
