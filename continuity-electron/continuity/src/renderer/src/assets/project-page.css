@@ -1,6 +1,7 @@
 .project-layout {
     min-height: 100vh;
     background-color: #171717;
+    font-family: var(--cont-text-font);
 }
 
 /* DASHBOARD */
@@ -8,10 +9,54 @@
 .cont-dashboard {
     overflow-x: hidden;
     margin: 2px;
-    font-family: var(--cont-text-font);
     background-color: #171717;
     min-height: 100vh;
 }
+
+.hero-container {
+    position: relative;
+    width: 100%;
+    max-height: 300px;
+    overflow: hidden;
+    border-radius: 15px;
+}
+.hero-image img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+}
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.hero-overlay h1 {
+    font-size: 4rem;
+    position: relative;
+    color: white;
+    font-weight: 400;
+    font-style: normal;
+    font-family: var(--cont-title-font);
+    text-align: center;
+    text-shadow:
+        2px 2px 4px rgba(0, 0, 0, 0.7),
+        0 0 10px var(--cont-mid-blue),
+        0 0 20px var(--cont-light-blue);
+    z-index: 1;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+}
+
+
+
+
+
+
+
 
 /* Sidebar */
 .sidebar {
@@ -108,7 +153,7 @@
 
 .sidebar.collapsed .sidebar-link .sidebar-icon {
     margin: 0 !important;
-    font-size: 16px;
+    font-size: 20px;
 }
 
 .collapsed .hide-on-collapse {
@@ -192,42 +237,67 @@ textarea {
     cursor: pointer;
 }
 
-
-/* testing modal (temporary) */
-.modal-overlay {
-    position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: rgba(0, 0, 0, 0.5);
-        /* dark semi-transparent background */
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-        /* sits on top of everything */
-}
-.modal-content {
-    background: var(--cont-mid-blue);
-    padding: 1rem;
-    border-radius: 12px;
-    text-align: center;
-    min-width: 300px;
-    max-width: 90%;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-}
-
-.modal-content button {
-    margin-top: 1rem;
-    padding: 0.5rem 1rem;
+/* Story Segment page card accordion */
+.segment-card {
     border-radius: 8px;
-    background-color: var(--cont-light-blue);
-    color: var(--cont-white);
-    border: none;
-    cursor: pointer;
-    font-family: var(--cont-text-font);
+    margin-bottom: 12px;
+    overflow: hidden;
+    width: 90%;
 }
-.modal-content button:hover {
+
+.segment-card-header {
+    background: var(--cont-light-blue);
+    padding: 12px;
+}
+
+.segment-card-body {
+    padding: 12px;
+    background-color: var(--cont-mid-blue);
+}
+
+.accordion-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.accordion-body.open {
+    max-height: 300px;
+    padding: 12px;
+    background: #7e0202;
+    border-top: 1px solid #ddd;
+}
+
+
+/* Entity cards */
+.entity-card {
+    border: 1px solid #ccc;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.fact-list {
+    list-style: disc;
+    margin-left: 20px;
+    padding-left: 0;
+}
+
+.fact-actions button {
+    margin-left: 8px;
+    font-size: 0.85rem;
+    font-family: var(--cont-text-font);
+    color: white;
     background-color: var(--cont-light-blue);
+    border-radius: 10px;
+}
+
+.fact-actions button:disabled {
+    background-color: var(--cont-mid-blue);
+    color: rgb(153, 156, 168);
+}
+
+.fact-actions button:not(:disabled):hover {
+    background-color: var(--cont-light-blue);
+    cursor: pointer;
 }

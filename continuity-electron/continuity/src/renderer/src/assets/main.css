@@ -6,6 +6,12 @@
   font-style: normal;
 } */
 
+/* .im-fell-english-sc-regular {
+  font-family: "IM Fell English SC", serif;
+  font-weight: 400;
+  font-style: normal;
+} */
+
 :root {
   /* Brand colors */
     --cont-orange: #ffab49;
@@ -16,6 +22,7 @@
     --cont-black: #000000;
 
     --cont-text-font: "Montserrat", sans-serif;
+    --cont-title-font: "IM Fell English SC", serif;
 
     --sidebar-width: 240px;
     --sidebar-width-collapsed: 100px;
