@@ -1,10 +1,11 @@
+import asyncio
 import json
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Callable
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -12,16 +13,34 @@ from models.ner_extractor import HybridNERExtractor
 from models.fact_extractor import FactExtractor
 from config.settings import EXPORT_JSON_DIR
 
+# ---------------- Models ----------------
 class ExtractRequest(BaseModel):
     text: str
     time_id: Optional[str] = "t_001"
     use_llm: Optional[bool] = None
 
+# ---------------- In-memory job store ----------------
+JOBS: Dict[str, Dict[str, Any]] = {}
+# schema:
+# {
+#   "status": "queued"|"running"|"done"|"error",
+#   "phase": "ner"|"facts"|"finalize",
+#   "progress": 0.0..1.0,
+#   "message": str,
+#   "processed": int,
+#   "total": int,
+#   "currentEntityId": str|None,
+#   "currentEntityName": str|None,
+#   "result": {...} | None,
+#   "createdAt": ts
+# }
+
+# ---------------- App factory ----------------
 def create_app(
     ner_extractor: HybridNERExtractor,
     fact_extractor: Optional[FactExtractor] = None,
 ) -> FastAPI:
-    app = FastAPI(title="Entity Extraction API", version="1.1.2")
+    app = FastAPI(title="Entity Extraction API", version="1.2.0")
 
     app.add_middleware(
         CORSMiddleware,
@@ -34,26 +53,112 @@ def create_app(
     @app.get("/health")
     async def health() -> Dict[str, Any]:
         return {"status": "ok"}
+    
+    # ---------- New: async job with progress ----------
+    @app.post("/entities/extract/start")
+    async def extract_start(req: ExtractRequest) -> Dict[str, str]:
+        job_id = uuid.uuid4().hex
+        JOBS[job_id] = {
+            "status": "queued",
+            "phase": "ner",
+            "progress": 0.0,
+            "message": "Queued",
+            "processed": 0,
+            "total": 0,
+            "currentEntityId": None,
+            "currentEntityName": None,
+            "result": None,
+            "createdAt": time.time(),
+        }
 
-    @app.post("/entities/extract")
-    async def extract(req: ExtractRequest) -> Dict[str, Any]:
+        # launch background task
+        asyncio.create_task(_run_job(job_id, req, ner_extractor, fact_extractor))
+        return {"jobId": job_id}
+
+    @app.get("/entities/status/{job_id}")
+    async def extract_status(job_id: str) -> Dict[str, Any]:
+        job = JOBS.get(job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found")
+        # do not include result here (keep payload light)
+        return {
+            "status": job["status"],
+            "phase": job["phase"],
+            "progress": job["progress"],
+            "message": job["message"],
+            "processed": job["processed"],
+            "total": job["total"],
+            "currentEntityId": job["currentEntityId"],
+            "currentEntityName": job["currentEntityName"],
+        }
+
+    @app.get("/entities/result/{job_id}")
+    async def extract_result(job_id: str) -> Dict[str, Any]:
+        job = JOBS.get(job_id)
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found")
+        if job["status"] != "done" or job["result"] is None:
+            raise HTTPException(status_code=202, detail="Job not finished")
+        return job["result"]
+
+    return app
+
+
+# ---------------- Job runner ----------------
+async def _run_job(
+    job_id: str,
+    req: ExtractRequest,
+    ner_extractor: HybridNERExtractor,
+    fact_extractor: Optional[FactExtractor],
+):
+    job = JOBS[job_id]
+    try:
+        job["status"] = "running"
+        job["phase"] = "ner"
+        job["message"] = "Extracting entities…"
+        job["progress"] = 0.02
+
         text = (req.text or "").strip()
         time_id = req.time_id or "t_001"
 
+        # --- Phase 1: NER ---
         entities: List[Dict[str, Any]] = await ner_extractor.extract_entities(text=text, time_id=time_id)
+        job["progress"] = 0.30  # mark NER as 30% of the total
+        job["message"] = f"Found {len(entities)} entities."
 
+        # --- Phase 2: Facts ---
+        facts_map: Dict[str, List[Dict[str, Any]]] = {}
         if entities and fact_extractor:
             if req.use_llm is not None:
                 fact_extractor.use_llm = bool(req.use_llm)
 
-            facts_map: Dict[str, List[Dict[str, Any]]] = await fact_extractor.extract_facts_for_entities(
-                text, entities, time_id
+            job["phase"] = "facts"
+            job["message"] = "Aggregating facts…"
+
+            # progress callback from fact extractor
+            def _progress_cb(info: Dict[str, Any]):
+                # info: {"processed": int, "total": int, "entityId": str, "entityName": str}
+                processed = int(info.get("processed", 0))
+                total = max(1, int(info.get("total", 1)))
+                # facts are 70% of overall progress
+                frac = processed / total
+                job["progress"] = 0.30 + 0.70 * frac
+                job["processed"] = processed
+                job["total"] = total
+                job["currentEntityId"] = info.get("entityId")
+                job["currentEntityName"] = info.get("entityName")
+
+            facts_map = await fact_extractor.extract_facts_for_entities(
+                text, entities, time_id, progress=_progress_cb
             )
-            for e in entities:
-                e["facts"] = facts_map.get(e.get("id"), [])
+        else:
+            job["phase"] = "finalize"
+
+        # Merge + finalize
+        for e in entities:
+            e["facts"] = facts_map.get(e.get("id"), [])
 
         payload: Dict[str, Any] = {"entities": entities, "count": len(entities)}
-
         # export response JSON
         try:
             ts = time.strftime("%Y%m%d-%H%M%S")
@@ -64,9 +169,16 @@ def create_app(
                 json.dump(payload, f, ensure_ascii=False, indent=2)
             payload["exportPath"] = str(out_path)
         except Exception as ex:
-            # non-fatal; avoid breaking the response
             print(f"[export] Failed to write JSON: {ex}")
 
-        return payload
+        job["phase"] = "finalize"
+        job["message"] = "Done"
+        job["progress"] = 1.0
+        job["status"] = "done"
+        job["result"] = payload
 
-    return app
+    except Exception as e:
+        job["status"] = "error"
+        job["message"] = f"{type(e).__name__}: {e}"
+        job["phase"] = "finalize"
+        job["progress"] = 1.0

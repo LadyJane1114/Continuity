@@ -29,6 +29,7 @@
     #submitBtn:disabled { opacity: .6; cursor: not-allowed; }
     #clearBtn { background: #f0f0f0; color: #666; }
     #clearBtn:hover { background: #e0e0e0; }
+
     .response-section { background: #f8f9fa; border-radius: 10px; padding: 20px; min-height: 200px; }
     .response-label { color: #555; font-weight: 600; margin-bottom: 10px; }
     #response { color: #333; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; }
@@ -40,6 +41,7 @@
     .status-online { background:#27ae60; box-shadow: 0 0 5px #27ae60; }
     .status-offline { background:#e74c3c; }
     .user-id-input { width:100%; padding:10px; border:2px solid #e0e0e0; border-radius:8px; font-size:14px; margin-bottom:15px; }
+
     .entities-container { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:20px; margin-top:20px; }
     .entity-card { background:white; border:2px solid #e0e0e0; border-radius:12px; padding:20px; transition: all .3s; }
     .entity-card:hover { border-color:#667eea; box-shadow:0 5px 15px rgba(102,126,234,.2); }
@@ -60,20 +62,42 @@
     .fact-value { color:#333; }
     .fact-time { font-size:11px; color:#999; margin-left:5px; }
     .entity-id { font-size:11px; color:#999; margin-top:10px; }
+
     .json-container { background:#1e1e1e; border-radius:10px; padding:20px; margin-top:20px; max-height:500px; overflow-y:auto; }
     .json-content { color:#d4d4d4; font-family:'Courier New', monospace; font-size:13px; white-space:pre-wrap; word-wrap:break-word; }
+
     .stats-bar { background:#f8f9fa; padding:15px; border-radius:10px; margin-bottom:20px; display:flex; justify-content:space-around; text-align:center; }
     .stat-item { flex:1; }
     .stat-number { font-size:32px; font-weight:700; color:#667eea; }
     .stat-label { font-size:12px; color:#666; text-transform:uppercase; margin-top:5px; }
     .time-input { width:200px; padding:10px; border:2px solid #e0e0e0; border-radius:8px; font-size:14px; }
     .input-row { display:flex; gap:15px; align-items:center; margin-bottom:15px; }
+
     .tab-container { margin-top:30px; }
     .tabs { display:flex; gap:10px; margin-bottom:20px; border-bottom:2px solid #e0e0e0; }
     .tab { padding:10px 20px; cursor:pointer; border:none; background:none; font-size:16px; font-weight:600; color:#666; border-bottom:3px solid transparent; transition: all .3s; }
     .tab.active { color:#667eea; border-bottom-color:#667eea; }
     .tab-content { display:none; }
     .tab-content.active { display:block; }
+
+    /* ===== Full-screen loading overlay + progress/ETA ===== */
+    .loading-overlay { position: fixed; inset: 0; background: rgba(10,14,23,.70); backdrop-filter: blur(2px);
+      display: none; align-items: center; justify-content: center; z-index: 9999; }
+    .loading-card { background: #0f172a; color:#e5e7eb; border:1px solid rgba(148,163,184,.25); border-radius:16px;
+      width:min(600px, 92vw); padding: 24px; box-shadow: 0 30px 80px rgba(0,0,0,.5); }
+    .loading-title { font-weight: 700; font-size: 18px; margin-bottom: 10px; display:flex; justify-content:space-between; align-items: baseline; gap:8px; }
+    .progress-wrap { margin: 12px 0 6px; background:#0b1220; border:1px solid rgba(148,163,184,.2);
+      border-radius:10px; height: 14px; overflow: hidden; }
+    .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg,#818cf8,#22d3ee);
+      transition: width .25s ease; }
+    .loading-steps { display:grid; gap:6px; font-size: 13px; color:#c7d2fe; margin-top: 8px; }
+    .loading-step { opacity:.55; }
+    .loading-step.active { opacity:1; color:#fff; }
+    .loading-foot { margin-top: 10px; font-size: 12px; color:#94a3b8; }
+    .percent { font-weight:700; color:#e0e7ff; }
+    .eta { font-size:12px; color:#a5b4fc; font-variant-numeric: tabular-nums; }
+    .subprogress { font-size:12px; color:#c7d2fe; }
+
   </style>
 </head>
 <body>
@@ -86,7 +110,7 @@
 
     <div class="input-section">
       <label for="storyText">Story Text</label>
-      <textarea id="storyText" placeholder="Paste your story text here... The AI will extract characters, objects, locations, events, organizations, and concepts." autofocus></textarea>
+      <textarea id="storyText" placeholder="Paste your story text here..." autofocus></textarea>
     </div>
 
     <div class="input-row">
@@ -97,7 +121,7 @@
     </div>
 
     <div class="button-row">
-      <button id="submitBtn" onclick="extractEntities()">Extract Entities</button>
+      <button id="submitBtn" onclick="startExtractJob()">Extract Entities</button>
       <button id="clearBtn" onclick="clearAll()">Clear</button>
     </div>
 
@@ -125,11 +149,37 @@
     </div>
   </div>
 
+  <!-- Loading overlay -->
+  <div id="loadingOverlay" class="loading-overlay" aria-hidden="true">
+    <div class="loading-card">
+      <div class="loading-title">
+        <span id="loadingTitle">Running extraction…</span>
+        <span class="percent" id="loadingPercent">0%</span>
+      </div>
+
+      <div class="progress-wrap">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+
+      <div class="subprogress" id="subProgressText">Step 1/3 • NER progress: 0% (overall 0%)</div>
+      <div class="eta" id="etaText">ETA: calculating…</div>
+
+      <div class="loading-steps">
+        <div id="step1" class="loading-step">1) Extracting entities…</div>
+        <div id="step2" class="loading-step">2) Aggregating facts…</div>
+        <div id="step3" class="loading-step">3) Rendering results…</div>
+      </div>
+
+      <div class="loading-foot" id="loadingFoot">This may take a moment for longer texts.</div>
+    </div>
+  </div>
+
   <script>
     const API_BASE = 'http://localhost:8002';
     let extractedEntities = [];
+    let pollTimer = null;
 
-    // Healthcheck
+    // ===== Healthcheck =====
     async function checkHealth() {
       try {
         const response = await fetch(`${API_BASE}/health`);
@@ -139,13 +189,73 @@
         } else {
           throw new Error('API not healthy');
         }
-      } catch (error) {
+      } catch {
         document.getElementById('statusIndicator').className = 'status-indicator status-offline';
         document.getElementById('statusText').textContent = 'Disconnected - Make sure API is running';
       }
     }
 
-    async function extractEntities() {
+    // ===== Overlay helpers =====
+    function showOverlay() {
+      document.getElementById('loadingOverlay').style.display = 'flex';
+      document.getElementById('loadingOverlay').setAttribute('aria-hidden','false');
+      setPercent(0);
+      setSubProgress({phase:'ner', overall:0});
+      setETA(null);
+      setStep(1);
+      document.getElementById('loadingFoot').textContent = 'Initializing…';
+    }
+    function hideOverlay() {
+      document.getElementById('loadingOverlay').style.display = 'none';
+      document.getElementById('loadingOverlay').setAttribute('aria-hidden','true');
+    }
+    function setPercent(p) {
+      const pct = Math.max(0, Math.min(100, Math.round(p)));
+      document.getElementById('loadingPercent').textContent = pct + '%';
+      document.getElementById('progressBar').style.width = pct + '%';
+    }
+    function setStep(i) {
+      ['step1','step2','step3'].forEach((id, idx) => {
+        document.getElementById(id).classList.toggle('active', idx === (i-1));
+      });
+    }
+    function setSubProgress({ phase, overall, processed=0, total=0 }) {
+      // According to API: NER ≈ 30% of total; Facts ≈ 70% of total.  [1](https://nscc-my.sharepoint.com/personal/w0500154_campus_nscc_ca/Documents/Microsoft%20Copilot%20Chat%20Files/web_api.py)
+      let stepIndex = 1, stepName = 'NER', phasePct = 0;
+      if (phase === 'ner') {
+        stepIndex = 1; stepName = 'NER';
+        phasePct = Math.max(0, Math.min(100, Math.round((overall / 30) * 100)));
+      } else if (phase === 'facts') {
+        stepIndex = 2; stepName = 'Facts';
+        // overall 30..100 → map to 0..100 for phase percentage
+        const clamped = Math.max(30, Math.min(100, overall));
+        phasePct = Math.round(((clamped - 30) / 70) * 100);
+      } else {
+        stepIndex = 3; stepName = 'Finalize';
+        phasePct = 100;
+      }
+      const sub = document.getElementById('subProgressText');
+      const parts = [`Step ${stepIndex}/3 • ${stepName} progress: ${phasePct}%`];
+      if (phase === 'facts' && total > 0) {
+        parts.push(`• entities ${processed}/${total}`);
+      }
+      parts.push(`(overall ${Math.round(overall)}%)`);
+      sub.textContent = parts.join(' ');
+    }
+    function setETA(secondsNullable) {
+      const etaEl = document.getElementById('etaText');
+      if (secondsNullable == null || !isFinite(secondsNullable) || secondsNullable < 0) {
+        etaEl.textContent = 'ETA: calculating…';
+        return;
+      }
+      const s = Math.max(0, Math.round(secondsNullable));
+      const mm = String(Math.floor(s / 60)).padStart(2,'0');
+      const ss = String(s % 60).padStart(2,'0');
+      etaEl.textContent = `ETA: ${mm}:${ss}`;
+    }
+
+    // ===== Start job =====
+    async function startExtractJob() {
       const storyText = document.getElementById('storyText').value.trim();
       const timeId = document.getElementById('timeId').value.trim() || 't_001';
       const responseDiv = document.getElementById('response');
@@ -158,32 +268,36 @@
         return;
       }
 
+      // reset UI and show overlay
       submitBtn.disabled = true;
       submitBtn.textContent = 'Extracting...';
-      responseDiv.innerHTML = '<div class="loading">🔍 Analyzing story text and extracting entities...</div>';
+      responseDiv.innerHTML = '<div class="loading">🔎 Analyzing story text…</div>';
       loadingSection.style.display = 'block';
       resultsContainer.style.display = 'none';
+      showOverlay();
 
       try {
-        const res = await fetch(`${API_BASE}/entities/extract`, {
+        const res = await fetch(`${API_BASE}/entities/extract/start`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: storyText, time_id: timeId })
         });
+        if (!res.ok) throw new Error(`API error: ${res.status}`);
+        const { jobId } = await res.json();
 
-        if (!res.ok) {
-          throw new Error(`API error: ${res.status}`);
-        }
+        // Poll status -> result
+        await pollStatus(jobId);
 
-        const data = await res.json();
+        const finalRes = await fetch(`${API_BASE}/entities/result/${jobId}`);
+        if (finalRes.status === 202) throw new Error('Job not finished (202).');
+        if (!finalRes.ok) throw new Error(`Result fetch error: ${finalRes.status}`);
+        const data = await finalRes.json();
         extractedEntities = data.entities || [];
 
-        loadingSection.style.display = 'none';
+        document.getElementById('loadingSection').style.display = 'none';
         resultsContainer.style.display = 'block';
-
         displayEntities(extractedEntities);
         displayJSON(data);
-
       } catch (error) {
         responseDiv.innerHTML = `
           <div class="error">
@@ -191,14 +305,94 @@
             Make sure the API is running at ${API_BASE}
           </div>
         `;
-        loadingSection.style.display = 'block';
-        resultsContainer.style.display = 'none';
+        document.getElementById('loadingSection').style.display = 'block';
+        document.getElementById('resultsContainer').style.display = 'none';
       } finally {
+        if (pollTimer) clearInterval(pollTimer);
+        hideOverlay();
         submitBtn.disabled = false;
         submitBtn.textContent = 'Extract Entities';
       }
     }
 
+    // ===== Status polling with ETA =====
+    // Simple ETA estimator: keep a small buffer of [time, progress] and extrapolate.
+    const etaWindow = [];
+    const ETA_WINDOW_MS = 6000;  // ~6s rolling window
+    function updateETA(nowMs, overallPercent) {
+      const t = nowMs;
+      etaWindow.push([t, overallPercent]);
+      // drop old points
+      while (etaWindow.length > 0 && (t - etaWindow[0][0]) > ETA_WINDOW_MS) {
+        etaWindow.shift();
+      }
+      if (etaWindow.length < 2) {
+        setETA(null);
+        return;
+      }
+      const [t0, p0] = etaWindow[0];
+      const [t1, p1] = etaWindow[etaWindow.length - 1];
+      const dp = p1 - p0;
+      const dtSec = (t1 - t0) / 1000;
+      if (dp <= 0 || dtSec <= 0) {
+        setETA(null);
+        return;
+      }
+      const rate = dp / dtSec; // percent per second
+      const remaining = Math.max(0, 100 - p1);
+      const etaSeconds = remaining / rate;
+      setETA(etaSeconds);
+    }
+
+    async function pollStatus(jobId) {
+      return new Promise((resolve, reject) => {
+        const stepByPhase = { ner: 1, facts: 2, finalize: 3 };
+        pollTimer = setInterval(async () => {
+          try {
+            const r = await fetch(`${API_BASE}/entities/status/${jobId}`, { cache: 'no-store' });
+            if (!r.ok) throw new Error(`Status error: ${r.status}`);
+            const s = await r.json();
+
+            // Convert API progress [0..1] → percent
+            const pct = Math.round((s.progress || 0) * 100);
+            setPercent(pct);
+            setStep(stepByPhase[s.phase] || 1);
+            setSubProgress({
+              phase: s.phase,
+              overall: pct,
+              processed: s.processed ?? 0,
+              total: s.total ?? 0
+            });
+            updateETA(performance.now(), pct);
+
+            const foot = document.getElementById('loadingFoot');
+            if (s.currentEntityName) {
+              foot.textContent = `Processing: ${s.currentEntityName} (${s.processed}/${s.total})`;
+            } else {
+              foot.textContent = s.message || 'Working…';
+            }
+
+            if (s.status === 'done') {
+              clearInterval(pollTimer);
+              setPercent(100);
+              setStep(3);
+              setSubProgress({ phase:'finalize', overall:100 });
+              setETA(0);
+              resolve();
+            } else if (s.status === 'error') {
+              clearInterval(pollTimer);
+              reject(new Error(s.message || 'Unknown error'));
+            }
+          } catch (e) {
+            // transient error—stop polling and surface error
+            clearInterval(pollTimer);
+            reject(e);
+          }
+        }, 500);
+      });
+    }
+
+    // ===== Render helpers =====
     function displayEntities(entities) {
       const container = document.getElementById('entitiesContainer');
       const statsBar = document.getElementById('statsBar');
@@ -209,7 +403,6 @@
         return;
       }
 
-      // Stats
       const typeCount = {};
       entities.forEach(e => {
         const type = e.entityType || 'unknown';
@@ -229,13 +422,10 @@
         `).join('')}
       `;
 
-      // Cards
       container.innerHTML = entities.map(entity => {
         const typeClass = `type-${entity.entityType || 'unknown'}`;
         const aliases = entity.aliases && entity.aliases.length > 0
-          ? `<div class="entity-aliases">aka: ${entity.aliases.map(escapeHtml).join(', ')}</div>`
-          : '';
-
+          ? `<div class="entity-aliases">aka: ${entity.aliases.map(escapeHtml).join(', ')}</div>` : '';
         const facts = entity.facts && entity.facts.length > 0
           ? `<div class="entity-facts">
               ${entity.facts.map(f => `
@@ -295,10 +485,9 @@
     document.getElementById('storyText').addEventListener('keydown', function(e) {
       if (e.key === 'Enter' && e.ctrlKey) {
         e.preventDefault();
-        extractEntities();
+        startExtractJob();
       }
     });
-
     checkHealth();
     setInterval(checkHealth, 30000);
   </script>

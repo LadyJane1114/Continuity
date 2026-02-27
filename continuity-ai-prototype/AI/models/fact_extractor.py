@@ -2,12 +2,11 @@ from __future__ import annotations
 import re
 import json
 import logging
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional, Tuple, Callable
 
 logger = logging.getLogger(__name__)
 
 Sentence = Tuple[int, int, str]  # (start, end, sentence_text)
-
 
 class FactExtractor:
     def __init__(
@@ -26,36 +25,45 @@ class FactExtractor:
         self.temperature = temperature
         self.max_tokens = max_tokens
 
-        # Optional regex rules (fallback only)
-        self._apposition = re.compile(
-            r"\b(?P<name>[A-Z][\w\-]*(?:\s+(?:van|von|de|del|da|di|la|le))?(?:\s+[A-Z][\w\-]+)?)\s*,\s+"
-            r"(?P<role>(?:the|a|an)\s+[a-z][^,]+?),",
-            re.IGNORECASE,
-        )
-        self._possessive = re.compile(
-            r"\b(?P<name>[A-Z][\w\-]*(?:\s+[A-Z][\w\-]+)*)[’']s\s+(?P<object>(?:[a-z]+(?:\s+|-))+[a-z]+)",
-            re.IGNORECASE,
-        )
-        self._svo = re.compile(
-            r"\b(?P<name>[A-Z][\w\-]*(?:\s+(?:van|von|de|del|da|di|la|le))?(?:\s+[A-Z][\w\-]+)*)\s+"
-            r"(?P<verb>(?:is|was|leads|led|holds|held|owns|owned|built|builds|found|finds|"
-            r"discovered|discovers|guards|guarded|sails|sailed|manages|managed|directs|directed))\s+"
-            r"(?P<object>[^,.;:]{1,60})",
-            re.IGNORECASE,
-        )
-
     # ---------------- Public API ----------------
-
     async def extract_facts_for_entities(
-        self, text: str, entities: List[dict], time_id: str
+        self,
+        text: str,
+        entities: List[dict],
+        time_id: str,
+        progress: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> Dict[str, List[dict]]:
+        """Extract facts per entity.
+
+        Args:
+            text: Full document text.
+            entities: List of entity dicts that include at least {id, name, aliases?}.
+            time_id: Timestamp/tag propagated to evidence.
+            progress: Optional callback receiving {processed, total, entityId, entityName}.
+        Returns:
+            Mapping from entity id -> list of fact dicts.
+        """
         sentences = self._split_sentences_with_spans(text)
         results: Dict[str, List[dict]] = {}
+
+        total = max(1, len(entities))
+        processed = 0
+        if progress:
+            try:
+                progress({"processed": processed, "total": total, "entityId": None, "entityName": None})
+            except Exception:  # don't let UI break the pipeline
+                logger.debug("progress callback failed at start", exc_info=True)
 
         for ent in entities:
             name = (ent.get("name") or "").strip()
             ent_id = ent.get("id")
             if not name or not ent_id:
+                processed += 1
+                if progress:
+                    try:
+                        progress({"processed": processed, "total": total, "entityId": ent_id, "entityName": name})
+                    except Exception:
+                        logger.debug("progress callback failed (skip entity)", exc_info=True)
                 continue
 
             aliases = ent.get("aliases") or []
@@ -76,14 +84,12 @@ class FactExtractor:
                             method="llm",
                         )
                     )
-
                 if self.rules_fallback and not llm_facts:
                     facts.extend(
                         self._facts_from_sentence_rules(
                             name, (start, end, sent_text), time_id, aliases
                         )
                     )
-
                 if len(facts) >= self.max_facts_per_entity:
                     break
 
@@ -96,14 +102,24 @@ class FactExtractor:
                     seen.add(key)
             results[ent_id] = uniq[: self.max_facts_per_entity]
 
+            processed += 1
+            if progress:
+                try:
+                    progress({
+                        "processed": processed,
+                        "total": total,
+                        "entityId": ent_id,
+                        "entityName": name,
+                    })
+                except Exception:
+                    logger.debug("progress callback failed (per-entity)", exc_info=True)
+
         return results
 
     # ---------------- LLM extraction ----------------
-
     async def _llm_extract_facts_for_sentence(self, name: str, sentence: str) -> List[str]:
         if not self.llm or not self.use_llm:
             return []
-
         prompt = (
             "You extract facts strictly from the given sentence.\n"
             f"Target entity: {name}\n"
@@ -117,71 +133,36 @@ class FactExtractor:
             f"Sentence: {sentence}\n"
             'Example output: {"facts": ["Ludwig van Beethoven was a German composer.", "His early period lasted until 1802."]}'
         )
-
-        text = await self.llm.generate_json(
-            prompt, temperature=self.temperature, max_tokens=self.max_tokens  # type: ignore
-        )
+        try:
+            text = await self.llm.generate_json(
+                prompt, temperature=self.temperature, max_tokens=self.max_tokens  # type: ignore
+            )
+        except Exception:
+            logger.exception("LLM generation failed; returning no facts for sentence")
+            return []
         data = self._safe_json(text)
         facts = [s.strip() for s in data.get("facts", []) if isinstance(s, str) and s.strip()]
         return facts
 
-    # ---------------- Regex fallback (optional) ----------------
-
-    def _facts_from_sentence_rules(
-        self, name: str, sent: Sentence, time_id: str, aliases: Optional[List[str]] = None
-    ) -> List[Dict[str, Any]]:
-        start, end, text = sent
-        facts: List[Dict[str, Any]] = []
-
-        # Apposition
-        for m in self._apposition.finditer(text):
-            if self._name_matches(name, m.group("name"), aliases):
-                role = m.group("role").strip()
-                facts.append(self._mk_fact(f"{name} is {role}.", text, start, end, time_id, 0.74, "rule"))
-
-        # Possessive (guard against bare adjectives like "early")
-        for m in self._possessive.finditer(text):
-            if self._name_matches(name, m.group("name"), aliases):
-                obj = re.sub(r"\s+", " ", m.group("object").strip())
-                if obj.lower() in {"early", "middle", "late"}:
-                    after = text[m.end() : m.end() + 12]
-                    if re.match(r"\s*period\b", after, re.IGNORECASE):
-                        obj = f"{obj} period"
-                    else:
-                        continue
-                facts.append(self._mk_fact(f"{name} has {obj}.", text, start, end, time_id, 0.70, "rule"))
-
-        # SVO
-        for m in self._svo.finditer(text):
-            if self._name_matches(name, m.group("name"), aliases):
-                verb = m.group("verb").strip().lower()
-                obj = m.group("object").strip()
-                facts.append(self._mk_fact(f"{name} {verb} {obj}.", text, start, end, time_id, 0.70, "rule"))
-
-        # De-dup by fact text
-        unique, seen = [], set()
-        for f in facts:
-            k = f["fact"].lower()
-            if k not in seen:
-                unique.append(f)
-                seen.add(k)
-        return unique
-
     # ---------------- Helpers ----------------
-
     def _split_sentences_with_spans(self, text: str) -> List[Sentence]:
+        """Very simple sentence splitter that also returns spans.
+        It groups characters into chunks ending with . ! ? or end-of-text.
+        """
         sentences: List[Sentence] = []
-        start = 0
-        for m in re.finditer(r"[.!?](?:\s+|$)", text):
+        pattern = re.compile(r"[^.!?]*[.!?]|[^.!?]+$")
+        for m in pattern.finditer(text):
+            start = m.start()
             end = m.end()
-            chunk = text[start:end].strip()
+            chunk = text[start:end]
+            # trim leading/trailing whitespace but adjust spans accordingly
+            ltrim = len(chunk) - len(chunk.lstrip())
+            rtrim = len(chunk.rstrip())
+            tstart = start + ltrim
+            tend = start + rtrim
+            chunk = text[tstart:tend]
             if chunk:
-                sentences.append((start, end, chunk))
-            start = end
-        if start < len(text):
-            chunk = text[start:].strip()
-            if chunk:
-                sentences.append((start, len(text), chunk))
+                sentences.append((tstart, tend, chunk))
         return sentences
 
     def _name_patterns(self, name: str, aliases: Optional[List[str]] = None):
@@ -212,11 +193,9 @@ class FactExtractor:
         x = canon(text_name)
         if t == x:
             return True
-
         parts = [p for p in re.split(r"\s+", target.strip()) if p]
         if len(parts) >= 2 and canon(parts[-1]) == x:
             return True
-
         for a in (aliases or []):
             if canon(a) == x:
                 return True
@@ -243,30 +222,25 @@ class FactExtractor:
     def _safe_json(self, text: str) -> Dict[str, Any]:
         if not text:
             return {"facts": []}
-
         s = text.strip()
         s = s.replace("```json", "```").replace("```JSON", "```")
         if s.startswith("```") and s.endswith("```"):
             s = s.strip("`").strip()
-
-        start, end = s.find("{"), s.rfind("}")
-        if start != -1 and end != -1 and end > start:
-            s = s[start : end + 1]
-
+            start, end = s.find("{"), s.rfind("}")
+            if start != -1 and end != -1 and end > start:
+                s = s[start : end + 1]
         s = s.replace("“", '"').replace("”", '"').replace("’", "'").replace("‛", "'")
-
         try:
             return json.loads(s)
         except Exception:
             pass
-
+        # try to coerce common single-quote JSON mistakes
         s2 = re.sub(r"(?P<pre>[\{,\s])'(?P<key>\w+)'(?P<post>\s*:)", r'\g<pre>"\g<key>"\g<post>', s)
-        s2 = re.sub(r':\s*\'([^\'\n]*)\'', lambda m: ':"{}"'.format(m.group(1).replace('"', '\\"')), s2)
+        s2 = re.sub(r':\s*\'(.*?)\'', lambda m: ':"{}"'.format(m.group(1).replace('"', '\\"')), s2)
         try:
             return json.loads(s2)
         except Exception:
             pass
-
         m = re.search(r'\[(?:\s*".*?"\s*)(?:,\s*".*?"\s*)*\]', s)
         if m:
             try:
@@ -274,5 +248,4 @@ class FactExtractor:
                 return {"facts": arr}
             except Exception:
                 pass
-
         return {"facts": []}
