@@ -3,139 +3,234 @@
     {
       "id": "ent_000001",
       "entityType": "character",
-      "name": "Liora",
+      "name": "Calvin F. Duncan",
       "aliases": [],
       "facts": [],
-      "version": 1
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9967302680015564
     },
     {
       "id": "ent_000002",
-      "entityType": "character",
-      "name": "Temple",
+      "entityType": "concept",
+      "name": "American",
       "aliases": [],
       "facts": [],
-      "version": 1
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9996259212493896
     },
     {
       "id": "ent_000003",
-      "entityType": "character",
-      "name": "Livia",
+      "entityType": "location",
+      "name": "Louisiana State Penitentiary",
       "aliases": [],
       "facts": [],
-      "version": 1
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9896965026855469
     },
     {
       "id": "ent_000004",
       "entityType": "character",
-      "name": "Eldervale",
+      "name": "Duncan",
       "aliases": [],
       "facts": [],
-      "version": 1
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9991594552993774
     },
     {
       "id": "ent_000005",
       "entityType": "character",
-      "name": "Ancient",
+      "name": "Duncan",
       "aliases": [],
       "facts": [],
-      "version": 1
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9991955161094666
     },
     {
       "id": "ent_000006",
-      "entityType": "character",
-      "name": "Constellations",
+      "entityType": "organization",
+      "name": "United States Supreme Court",
       "aliases": [],
       "facts": [],
-      "version": 1
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9471903443336487
     },
     {
       "id": "ent_000007",
-      "entityType": "character",
-      "name": "Light",
+      "entityType": "organization",
+      "name": "Lewis & Clark Law School",
       "aliases": [],
       "facts": [],
-      "version": 1
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9950650930404663
     },
     {
       "id": "ent_000008",
       "entityType": "character",
-      "name": "Hidden",
+      "name": "Ken Kane",
       "aliases": [],
       "facts": [],
-      "version": 1
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9995105266571045
     },
     {
       "id": "ent_000009",
-      "entityType": "character",
-      "name": "Path",
+      "entityType": "concept",
+      "name": "Tokyo Ghoul",
       "aliases": [],
       "facts": [],
-      "version": 1
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.8760982751846313
     },
     {
       "id": "ent_000010",
-      "entityType": "character",
-      "name": "Mist",
+      "entityType": "location",
+      "name": "Na",
       "aliases": [],
       "facts": [],
-      "version": 1
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9982544779777527
     },
     {
       "id": "ent_000011",
-      "entityType": "character",
-      "name": "Seed",
+      "entityType": "location",
+      "name": "gano",
       "aliases": [],
       "facts": [],
-      "version": 1
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9607055187225342
     },
     {
       "id": "ent_000012",
-      "entityType": "character",
-      "name": "Legends",
+      "entityType": "organization",
+      "name": "NBC",
       "aliases": [],
       "facts": [],
-      "version": 1
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9973606467247009
     },
     {
       "id": "ent_000013",
       "entityType": "character",
-      "name": "Time",
+      "name": "Terry Gannon",
       "aliases": [],
       "facts": [],
-      "version": 1
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9995570778846741
     },
     {
       "id": "ent_000014",
       "entityType": "character",
-      "name": "Hidden",
+      "name": "Johnny Weir",
       "aliases": [],
       "facts": [],
-      "version": 1
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9996918439865112
     },
     {
       "id": "ent_000015",
-      "entityType": "character",
-      "name": "Path",
+      "entityType": "organization",
+      "name": "Association",
       "aliases": [],
       "facts": [],
-      "version": 1
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9910808205604553
     },
     {
       "id": "ent_000016",
       "entityType": "character",
-      "name": "Mist",
+      "name": "Lipin",
       "aliases": [],
       "facts": [],
-      "version": 1
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.8563299775123596
     },
     {
       "id": "ent_000017",
-      "entityType": "character",
-      "name": "Kingdom",
+      "entityType": "organization",
+      "name": "NBC",
       "aliases": [],
       "facts": [],
-      "version": 1
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9976474642753601
+    },
+    {
+      "id": "ent_000018",
+      "entityType": "character",
+      "name": "Terry Gannon",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9995930790901184
+    },
+    {
+      "id": "ent_000019",
+      "entityType": "character",
+      "name": "Johnny Weir",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.9997024536132812
+    },
+    {
+      "id": "ent_000020",
+      "entityType": "organization",
+      "name": "Army",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.6524200439453125
+    },
+    {
+      "id": "ent_000021",
+      "entityType": "concept",
+      "name": "Seven Years' War",
+      "aliases": [],
+      "facts": [],
+      "firstMentionedAt": "t_001",
+      "lastUpdatedAt": "t_001",
+      "version": 1,
+      "confidence": 0.996705174446106
     }
   ],
-  "count": 17
+  "count": 21
 }

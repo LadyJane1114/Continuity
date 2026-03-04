@@ -1,50 +1,43 @@
-"""Main entry point for the AI solution."""
 import asyncio
 import logging
+from pathlib import Path
 import sys
-from typing import Literal
 
-from database.vector_db import VectorDB
-from models.llm_manager import LLMManager
+from models.ner_extractor import HybridNERExtractor
 from interfaces.web_api import create_app
-from utils.context_manager import ContextManager
 from utils.logger import setup_logging
-from config.settings import API_HOST, API_PORT
+from config.settings import API_HOST, API_PORT, EXPORT_JSON_DIR, FACT_MODEL_PATH
+from models.fact_extractor import FactExtractor
+from models.llm_manager import LLMManager
 
-# Setup logging
 setup_logging()
 logger = logging.getLogger(__name__)
+Path(EXPORT_JSON_DIR).mkdir(parents=True, exist_ok=True)
 
-
-async def run_web_api(vector_db: VectorDB, llm_manager: LLMManager):
-    """Run the FastAPI web server."""
+async def run_web_api(ner_extractor: HybridNERExtractor):
     import uvicorn
     import threading
 
-    context_manager = ContextManager()
-    app = create_app(vector_db, llm_manager, context_manager)
-
-    config = uvicorn.Config(
-        app=app,
-        host=API_HOST,
-        port=API_PORT,
-        log_level="info",
-        server_header=False,
+    llm = LLMManager(model_path=FACT_MODEL_PATH)
+    fact_extractor = FactExtractor(
+        llm=llm,
+        use_llm=True,
+        max_facts_per_entity=3,
+        rules_fallback=False,
+        temperature=0.2,
+        max_tokens=120,
     )
-    
-    logger.info(f"Starting web API on {API_HOST}:{API_PORT}")
-    
-    # Run uvicorn in a blocking manner with Python's asyncio
-    # Use a thread to run the sync uvicorn.run()
+
+    app = create_app(ner_extractor, fact_extractor=fact_extractor)
+    logger.info("Starting Entity Extraction API on %s:%s", API_HOST, API_PORT)
+
     def run_server():
         uvicorn.run(app, host=API_HOST, port=API_PORT, log_level="info")
-    
-    # Run server in thread so it blocks properly
+
     thread = threading.Thread(target=run_server, daemon=True)
     thread.start()
-    
-    # Keep the async function running
     logger.info("Server thread started, keeping process alive...")
+
     try:
         while True:
             await asyncio.sleep(10)
@@ -52,46 +45,17 @@ async def run_web_api(vector_db: VectorDB, llm_manager: LLMManager):
         logger.info("Server interrupted")
         raise
 
-
 async def main():
-    """
-    Main entry point - runs web API server.
-    """
-    # Initialize components
-    logger.info("Initializing components...")
-    
-    vector_db = None
-    llm_manager = None
-    
+    logger.info("Initializing entity extraction system...")
     try:
-        vector_db = VectorDB()
-        llm_manager = LLMManager()
-
-        # Check health
-        logger.info("Checking system health...")
-        llm_ok = await llm_manager.health_check()
-        if not llm_ok:
-            logger.warning("⚠ LLM not available. Ensure the GGUF path is correct and llama-cpp can load it.")
-        
-        db_info = vector_db.get_collection_info()
-        logger.info(f"Vector DB: {db_info['document_count']} documents")
-        
-        # Auto-load NSCC data if DB is empty
-        if db_info['document_count'] == 0:
-            logger.info("Knowledge base is empty, auto-loading NSCC data...")
-            from load_knowledge_base import load_nscc_data
-            load_nscc_data()
-            db_info = vector_db.get_collection_info()
-            logger.info(f"Vector DB now contains: {db_info['document_count']} documents")
-
-        # Run web API server
+        logger.info("Loading BERT NER model...")
+        ner_extractor = HybridNERExtractor(model_name="dslim/bert-base-NER")
+        logger.info("[OK] NER model loaded successfully")
         logger.info("Starting web API server...")
-        await run_web_api(vector_db, llm_manager)
-
+        await run_web_api(ner_extractor)
     except Exception as e:
-        logger.error(f"Fatal error in main: {type(e).__name__}: {e}", exc_info=True)
+        logger.error("Fatal error in main: %s: %s", type(e).__name__, e, exc_info=True)
         sys.exit(1)
-
 
 if __name__ == "__main__":
     try:

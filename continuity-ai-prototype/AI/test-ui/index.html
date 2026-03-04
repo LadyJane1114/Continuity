@@ -1,608 +1,584 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Entity Extraction Test UI</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Entity Extraction Test UI</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh; padding: 20px;
+    }
+    .container { background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      width: 100%; max-width: 1200px; margin: 0 auto; padding: 40px; }
+    h1 { color: #333; margin-bottom: 10px; text-align: center; }
+    .subtitle { color: #666; text-align: center; margin-bottom: 30px; font-size: 14px; }
+    .input-section { margin-bottom: 20px; }
+    label { display: block; color: #555; font-weight: 600; margin-bottom: 8px; }
+    textarea {
+      width: 100%; padding: 15px; border: 2px solid #e0e0e0; border-radius: 10px;
+      font-size: 16px; font-family: inherit; resize: vertical; min-height: 200px; transition: border-color .3s;
+    }
+    textarea:focus { outline: none; border-color: #667eea; }
+    .button-row { display: flex; gap: 10px; margin-bottom: 30px; }
+    button { flex: 1; padding: 15px 30px; font-size: 16px; font-weight: 600; border: none; border-radius: 10px; cursor: pointer; transition: all .3s; }
+    #submitBtn { background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); color: white; }
+    #submitBtn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(102,126,234,.4); }
+    #submitBtn:disabled { opacity: .6; cursor: not-allowed; }
+    #clearBtn { background: #f0f0f0; color: #666; }
+    #clearBtn:hover { background: #e0e0e0; }
+    #validateBtn { background: linear-gradient(135deg,#f093fb 0%,#f5576c 100%); color: white; display: none; }
+    #validateBtn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(240,147,251,.4); }
+    #validateBtn:disabled { opacity: .6; cursor: not-allowed; }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+    .response-section { background: #f8f9fa; border-radius: 10px; padding: 20px; min-height: 200px; }
+    .response-label { color: #555; font-weight: 600; margin-bottom: 10px; }
+    #response { color: #333; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; }
+    .loading { color: #667eea; font-style: italic; }
+    .error { color: #e74c3c; padding: 15px; background: #fee; border-radius: 8px; border-left: 4px solid #e74c3c; }
+    .success { animation: fadeIn .5s; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(10px);} to{opacity:1;transform:translateY(0);} }
+    .status-indicator { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; }
+    .status-online { background:#27ae60; box-shadow: 0 0 5px #27ae60; }
+    .status-offline { background:#e74c3c; }
+    .user-id-input { width:100%; padding:10px; border:2px solid #e0e0e0; border-radius:8px; font-size:14px; margin-bottom:15px; }
 
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 40px;
-        }
+    .entities-container { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:20px; margin-top:20px; }
+    .entity-card { background:white; border:2px solid #e0e0e0; border-radius:12px; padding:20px; transition: all .3s; }
+    .entity-card:hover { border-color:#667eea; box-shadow:0 5px 15px rgba(102,126,234,.2); }
+    .entity-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; padding-bottom:10px; border-bottom:2px solid #f0f0f0; }
+    .entity-name { font-size:18px; font-weight:700; color:#333; }
+    .entity-type { padding:4px 12px; border-radius:20px; font-size:12px; font-weight:600; text-transform:uppercase; }
+    .type-character { background:#e3f2fd; color:#1976d2; }
+    .type-object { background:#fff3e0; color:#f57c00; }
+    .type-location { background:#e8f5e9; color:#388e3c; }
+    .type-event { background:#fce4ec; color:#c2185b; }
+    .type-organization { background:#f3e5f5; color:#7b1fa2; }
+    .type-concept { background:#e0f2f1; color:#00796b; }
+    .type-unknown { background:#f5f5f5; color:#757575; }
+    .entity-aliases { margin-bottom:10px; font-size:14px; color:#666; }
+    .entity-facts { margin-top:10px; }
+    .fact-item { background:#f8f9fa; padding:8px; margin:5px 0; border-radius:6px; font-size:13px; position:relative; }
+    .fact-item.validated-clean { background:#f0fdf4; border-left:4px solid #22c55e; }
+    .fact-item.validated-contradiction { background:#fef2f2; border-left:4px solid #ef4444; }
+    .fact-key { font-weight:600; color:#555; }
+    .fact-value { color:#333; }
+    .fact-time { font-size:11px; color:#999; margin-left:5px; }
+    .fact-validation { margin-top:6px; padding:6px; border-radius:4px; font-size:11px; font-weight:600; }
+    .fact-contradiction { background:#fee; color:#c53030; border-left:3px solid #e53e3e; }
+    .fact-entailment { background:#e6fffa; color:#234e52; border-left:3px solid #38b2ac; }
+    .fact-clean-badge { display:inline-block; margin-left:8px; padding:2px 8px; background:#dcfce7; color:#166534; border-radius:12px; font-size:10px; font-weight:700; }
+    .entity-id { font-size:11px; color:#999; margin-top:10px; }
 
-        h1 {
-            color: #333;
-            margin-bottom: 10px;
-            text-align: center;
-        }
+    .json-container { background:#1e1e1e; border-radius:10px; padding:20px; margin-top:20px; max-height:500px; overflow-y:auto; }
+    .json-content { color:#d4d4d4; font-family:'Courier New', monospace; font-size:13px; white-space:pre-wrap; word-wrap:break-word; }
 
-        .subtitle {
-            color: #666;
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 14px;
-        }
+    .stats-bar { background:#f8f9fa; padding:15px; border-radius:10px; margin-bottom:20px; display:flex; justify-content:space-around; text-align:center; }
+    .stat-item { flex:1; }
+    .stat-number { font-size:32px; font-weight:700; color:#667eea; }
+    .stat-label { font-size:12px; color:#666; text-transform:uppercase; margin-top:5px; }
+    .time-input { width:200px; padding:10px; border:2px solid #e0e0e0; border-radius:8px; font-size:14px; }
+    .input-row { display:flex; gap:15px; align-items:center; margin-bottom:15px; }
 
-        .input-section {
-            margin-bottom: 20px;
-        }
+    .tab-container { margin-top:30px; }
+    .tabs { display:flex; gap:10px; margin-bottom:20px; border-bottom:2px solid #e0e0e0; }
+    .tab { padding:10px 20px; cursor:pointer; border:none; background:none; font-size:16px; font-weight:600; color:#666; border-bottom:3px solid transparent; transition: all .3s; }
+    .tab.active { color:#667eea; border-bottom-color:#667eea; }
+    .tab-content { display:none; }
+    .tab-content.active { display:block; }
 
-        label {
-            display: block;
-            color: #555;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
+    /* ===== Full-screen loading overlay + progress/ETA ===== */
+    .loading-overlay { position: fixed; inset: 0; background: rgba(10,14,23,.70); backdrop-filter: blur(2px);
+      display: none; align-items: center; justify-content: center; z-index: 9999; }
+    .loading-card { background: #0f172a; color:#e5e7eb; border:1px solid rgba(148,163,184,.25); border-radius:16px;
+      width:min(600px, 92vw); padding: 24px; box-shadow: 0 30px 80px rgba(0,0,0,.5); }
+    .loading-title { font-weight: 700; font-size: 18px; margin-bottom: 10px; display:flex; justify-content:space-between; align-items: baseline; gap:8px; }
+    .progress-wrap { margin: 12px 0 6px; background:#0b1220; border:1px solid rgba(148,163,184,.2);
+      border-radius:10px; height: 14px; overflow: hidden; }
+    .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg,#818cf8,#22d3ee);
+      transition: width .25s ease; }
+    .loading-steps { display:grid; gap:6px; font-size: 13px; color:#c7d2fe; margin-top: 8px; }
+    .loading-step { opacity:.55; }
+    .loading-step.active { opacity:1; color:#fff; }
+    .loading-foot { margin-top: 10px; font-size: 12px; color:#94a3b8; }
+    .percent { font-weight:700; color:#e0e7ff; }
+    .eta { font-size:12px; color:#a5b4fc; font-variant-numeric: tabular-nums; }
+    .subprogress { font-size:12px; color:#c7d2fe; }
 
-        textarea {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
-            font-family: inherit;
-            resize: vertical;
-            min-height: 200px;
-            transition: border-color 0.3s;
-        }
-
-        textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .button-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-        }
-
-        button {
-            flex: 1;
-            padding: 15px 30px;
-            font-size: 16px;
-            font-weight: 600;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        #submitBtn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        #submitBtn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-        }
-
-        #submitBtn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        #clearBtn {
-            background: #f0f0f0;
-            color: #666;
-        }
-
-        #clearBtn:hover {
-            background: #e0e0e0;
-        }
-
-        .response-section {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            min-height: 200px;
-        }
-
-        .response-label {
-            color: #555;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-
-        #response {
-            color: #333;
-            line-height: 1.6;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-
-        .loading {
-            color: #667eea;
-            font-style: italic;
-        }
-
-        .error {
-            color: #e74c3c;
-            padding: 15px;
-            background: #fee;
-            border-radius: 8px;
-            border-left: 4px solid #e74c3c;
-        }
-
-        .success {
-            animation: fadeIn 0.5s;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .status-indicator {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            margin-right: 5px;
-        }
-
-        .status-online {
-            background: #27ae60;
-            box-shadow: 0 0 5px #27ae60;
-        }
-
-        .status-offline {
-            background: #e74c3c;
-        }
-
-        .user-id-input {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            margin-bottom: 15px;
-        }
-
-        .entities-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-
-        .entity-card {
-            background: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 12px;
-            padding: 20px;
-            transition: all 0.3s;
-        }
-
-        .entity-card:hover {
-            border-color: #667eea;
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
-        }
-
-        .entity-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        .entity-name {
-            font-size: 18px;
-            font-weight: 700;
-            color: #333;
-        }
-
-        .entity-type {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .type-character { background: #e3f2fd; color: #1976d2; }
-        .type-object { background: #fff3e0; color: #f57c00; }
-        .type-location { background: #e8f5e9; color: #388e3c; }
-        .type-event { background: #fce4ec; color: #c2185b; }
-        .type-organization { background: #f3e5f5; color: #7b1fa2; }
-        .type-concept { background: #e0f2f1; color: #00796b; }
-        .type-unknown { background: #f5f5f5; color: #757575; }
-
-        .entity-aliases {
-            margin-bottom: 10px;
-            font-size: 14px;
-            color: #666;
-        }
-
-        .entity-facts {
-            margin-top: 10px;
-        }
-
-        .fact-item {
-            background: #f8f9fa;
-            padding: 8px;
-            margin: 5px 0;
-            border-radius: 6px;
-            font-size: 13px;
-        }
-
-        .fact-key {
-            font-weight: 600;
-            color: #555;
-        }
-
-        .fact-value {
-            color: #333;
-        }
-
-        .fact-time {
-            font-size: 11px;
-            color: #999;
-            margin-left: 5px;
-        }
-
-        .entity-id {
-            font-size: 11px;
-            color: #999;
-            margin-top: 10px;
-        }
-
-        .json-container {
-            background: #1e1e1e;
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 20px;
-            max-height: 500px;
-            overflow-y: auto;
-        }
-
-        .json-content {
-            color: #d4d4d4;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-
-        .stats-bar {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-around;
-            text-align: center;
-        }
-
-        .stat-item {
-            flex: 1;
-        }
-
-        .stat-number {
-            font-size: 32px;
-            font-weight: 700;
-            color: #667eea;
-        }
-
-        .stat-label {
-            font-size: 12px;
-            color: #666;
-            text-transform: uppercase;
-            margin-top: 5px;
-        }
-
-        .time-input {
-            width: 200px;
-            padding: 10px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-
-        .input-row {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .tab-container {
-            margin-top: 30px;
-        }
-
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #e0e0e0;
-        }
-
-        .tab {
-            padding: 10px 20px;
-            cursor: pointer;
-            border: none;
-            background: none;
-            font-size: 16px;
-            font-weight: 600;
-            color: #666;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s;
-        }
-
-        .tab.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-    </style>
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>📖 Story Entity Extractor</h1>
-        <p class="subtitle">
-            <span class="status-indicator" id="statusIndicator"></span>
-            <span id="statusText">Connecting...</span>
-        </p>
+  <div class="container">
+    <h1>📖 Story Entity Extractor</h1>
+    <p class="subtitle">
+      <span class="status-indicator" id="statusIndicator"></span>
+      <span id="statusText">Connecting...</span>
+    </p>
 
-        <div class="input-section">
-            <label for="storyText">Story Text</label>
-            <textarea 
-                id="storyText" 
-                placeholder="Paste your story text here... The AI will extract characters, objects, locations, events, organizations, and concepts."
-                autofocus
-            ></textarea>
-        </div>
-
-        <div class="input-row">
-            <div>
-                <label for="timeId">Time ID</label>
-                <input type="text" id="timeId" class="time-input" placeholder="t_001" value="t_001">
-            </div>
-        </div>
-
-        <div class="button-row">
-            <button id="submitBtn" onclick="extractEntities()">Extract Entities</button>
-            <button id="clearBtn" onclick="clearAll()">Clear</button>
-        </div>
-
-        <div class="tab-container" id="resultsContainer" style="display: none;">
-            <div class="tabs">
-                <button class="tab active" onclick="switchTab('cards')">Entity Cards</button>
-                <button class="tab" onclick="switchTab('json')">JSON Data</button>
-            </div>
-
-            <div id="cardsTab" class="tab-content active">
-                <div class="stats-bar" id="statsBar"></div>
-                <div class="entities-container" id="entitiesContainer"></div>
-            </div>
-
-            <div id="jsonTab" class="tab-content">
-                <div class="json-container">
-                    <pre class="json-content" id="jsonContent"></pre>
-                </div>
-            </div>
-        </div>
-
-        <div class="response-section" id="loadingSection">
-            <div class="response-label">Status:</div>
-            <div id="response">Waiting for story text...</div>
-        </div>
+    <div class="input-section">
+      <label for="storyText">Story Text</label>
+      <textarea id="storyText" placeholder="Paste your story text here..." autofocus></textarea>
     </div>
 
-    <script>
-        const API_BASE = 'http://localhost:8002';
-        let extractedEntities = [];
-        
-        // Check API health on load
-        async function checkHealth() {
-            try {
-                const response = await fetch(`${API_BASE}/health`);
-                if (response.ok) {
-                    document.getElementById('statusIndicator').className = 'status-indicator status-online';
-                    document.getElementById('statusText').textContent = 'Connected';
-                } else {
-                    throw new Error('API not healthy');
-                }
-            } catch (error) {
-                document.getElementById('statusIndicator').className = 'status-indicator status-offline';
-                document.getElementById('statusText').textContent = 'Disconnected - Make sure API is running';
-            }
+    <div class="input-row">
+      <div>
+        <label for="timeId">Time ID</label>
+        <input type="text" id="timeId" class="time-input" placeholder="t_001" value="t_001" />
+      </div>
+    </div>
+
+    <div class="button-row">
+      <button id="submitBtn" onclick="startExtractJob()">Extract Entities</button>
+      <button id="validateBtn" onclick="validateFacts()">🔍 Cross-Check Facts</button>
+      <button id="clearBtn" onclick="clearAll()">Clear</button>
+    </div>
+
+    <div class="tab-container" id="resultsContainer" style="display: none;">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('cards')">Entity Cards</button>
+        <button class="tab" onclick="switchTab('json')">JSON Data</button>
+      </div>
+
+      <div id="cardsTab" class="tab-content active">
+        <div class="stats-bar" id="statsBar"></div>
+        <div class="entities-container" id="entitiesContainer"></div>
+      </div>
+
+      <div id="jsonTab" class="tab-content">
+        <div class="json-container">
+          <pre class="json-content" id="jsonContent"></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="response-section" id="loadingSection">
+      <div class="response-label">Status:</div>
+      <div id="response">Waiting for story text...</div>
+    </div>
+  </div>
+
+  <!-- Loading overlay -->
+  <div id="loadingOverlay" class="loading-overlay" aria-hidden="true">
+    <div class="loading-card">
+      <div class="loading-title">
+        <span id="loadingTitle">Running extraction…</span>
+        <span class="percent" id="loadingPercent">0%</span>
+      </div>
+
+      <div class="progress-wrap">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+
+      <div class="subprogress" id="subProgressText">Step 1/3 • NER progress: 0% (overall 0%)</div>
+      <div class="eta" id="etaText">ETA: calculating…</div>
+
+      <div class="loading-steps">
+        <div id="step1" class="loading-step">1) Extracting entities…</div>
+        <div id="step2" class="loading-step">2) Aggregating facts…</div>
+        <div id="step3" class="loading-step">3) Rendering results…</div>
+      </div>
+
+      <div class="loading-foot" id="loadingFoot">This may take a moment for longer texts.</div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:8002';
+    let extractedEntities = [];
+    let pollTimer = null;
+
+    // ===== Healthcheck =====
+    async function checkHealth() {
+      try {
+        const response = await fetch(`${API_BASE}/health`);
+        if (response.ok) {
+          document.getElementById('statusIndicator').className = 'status-indicator status-online';
+          document.getElementById('statusText').textContent = 'Connected';
+        } else {
+          throw new Error('API not healthy');
         }
+      } catch {
+        document.getElementById('statusIndicator').className = 'status-indicator status-offline';
+        document.getElementById('statusText').textContent = 'Disconnected - Make sure API is running';
+      }
+    }
 
-        async function extractEntities() {
-            const storyText = document.getElementById('storyText').value.trim();
-            const timeId = document.getElementById('timeId').value.trim() || 't_001';
-            const responseDiv = document.getElementById('response');
-            const submitBtn = document.getElementById('submitBtn');
-            const loadingSection = document.getElementById('loadingSection');
-            const resultsContainer = document.getElementById('resultsContainer');
+    // ===== Overlay helpers =====
+    function showOverlay() {
+      document.getElementById('loadingOverlay').style.display = 'flex';
+      document.getElementById('loadingOverlay').setAttribute('aria-hidden','false');
+      setPercent(0);
+      setSubProgress({phase:'ner', overall:0});
+      setETA(null);
+      setStep(1);
+      document.getElementById('loadingFoot').textContent = 'Initializing…';
+    }
+    function hideOverlay() {
+      document.getElementById('loadingOverlay').style.display = 'none';
+      document.getElementById('loadingOverlay').setAttribute('aria-hidden','true');
+    }
+    function setPercent(p) {
+      const pct = Math.max(0, Math.min(100, Math.round(p)));
+      document.getElementById('loadingPercent').textContent = pct + '%';
+      document.getElementById('progressBar').style.width = pct + '%';
+    }
+    function setStep(i) {
+      ['step1','step2','step3'].forEach((id, idx) => {
+        document.getElementById(id).classList.toggle('active', idx === (i-1));
+      });
+    }
+    function setSubProgress({ phase, overall, processed=0, total=0 }) {
+      // According to API: NER ≈ 30% of total; Facts ≈ 70% of total.  [1](https://nscc-my.sharepoint.com/personal/w0500154_campus_nscc_ca/Documents/Microsoft%20Copilot%20Chat%20Files/web_api.py)
+      let stepIndex = 1, stepName = 'NER', phasePct = 0;
+      if (phase === 'ner') {
+        stepIndex = 1; stepName = 'NER';
+        phasePct = Math.max(0, Math.min(100, Math.round((overall / 30) * 100)));
+      } else if (phase === 'facts') {
+        stepIndex = 2; stepName = 'Facts';
+        // overall 30..100 → map to 0..100 for phase percentage
+        const clamped = Math.max(30, Math.min(100, overall));
+        phasePct = Math.round(((clamped - 30) / 70) * 100);
+      } else {
+        stepIndex = 3; stepName = 'Finalize';
+        phasePct = 100;
+      }
+      const sub = document.getElementById('subProgressText');
+      const parts = [`Step ${stepIndex}/3 • ${stepName} progress: ${phasePct}%`];
+      if (phase === 'facts' && total > 0) {
+        parts.push(`• entities ${processed}/${total}`);
+      }
+      parts.push(`(overall ${Math.round(overall)}%)`);
+      sub.textContent = parts.join(' ');
+    }
+    function setETA(secondsNullable) {
+      const etaEl = document.getElementById('etaText');
+      if (secondsNullable == null || !isFinite(secondsNullable) || secondsNullable < 0) {
+        etaEl.textContent = 'ETA: calculating…';
+        return;
+      }
+      const s = Math.max(0, Math.round(secondsNullable));
+      const mm = String(Math.floor(s / 60)).padStart(2,'0');
+      const ss = String(s % 60).padStart(2,'0');
+      etaEl.textContent = `ETA: ${mm}:${ss}`;
+    }
 
-            if (!storyText) {
-                responseDiv.innerHTML = '<div class="error">Please enter some story text!</div>';
-                return;
-            }
+    // ===== Start job =====
+    async function startExtractJob() {
+      const storyText = document.getElementById('storyText').value.trim();
+      const timeId = document.getElementById('timeId').value.trim() || 't_001';
+      const responseDiv = document.getElementById('response');
+      const submitBtn = document.getElementById('submitBtn');
+      const loadingSection = document.getElementById('loadingSection');
+      const resultsContainer = document.getElementById('resultsContainer');
 
-            // Disable button and show loading
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Extracting...';
-            responseDiv.innerHTML = '<div class="loading">🔍 Analyzing story text and extracting entities...</div>';
-            loadingSection.style.display = 'block';
-            resultsContainer.style.display = 'none';
+      if (!storyText) {
+        responseDiv.innerHTML = '<div class="error">Please enter some story text!</div>';
+        return;
+      }
 
-            try {
-                const response = await fetch(`${API_BASE}/entities/extract`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        text: storyText,
-                        time_id: timeId
-                    })
-                });
+      // reset UI and show overlay
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Extracting...';
+      responseDiv.innerHTML = '<div class="loading">🔎 Analyzing story text…</div>';
+      loadingSection.style.display = 'block';
+      resultsContainer.style.display = 'none';
+      showOverlay();
 
-                if (!response.ok) {
-                    throw new Error(`API error: ${response.status}`);
-                }
+      try {
+        const res = await fetch(`${API_BASE}/entities/extract/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: storyText, time_id: timeId })
+        });
+        if (!res.ok) throw new Error(`API error: ${res.status}`);
+        const { jobId } = await res.json();
 
-                const data = await response.json();
-                extractedEntities = data.entities || [];
-                
-                // Hide loading, show results
-                loadingSection.style.display = 'none';
-                resultsContainer.style.display = 'block';
-                
-                // Display entities
-                displayEntities(extractedEntities);
-                displayJSON(data);
+        // Poll status -> result
+        await pollStatus(jobId);
 
-            } catch (error) {
-                responseDiv.innerHTML = `
-                    <div class="error">
-                        <strong>Error:</strong> ${escapeHtml(error.message)}<br>
-                        Make sure the API is running at ${API_BASE}
-                    </div>
-                `;
-                loadingSection.style.display = 'block';
-                resultsContainer.style.display = 'none';
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Extract Entities';
-            }
-        }
+        const finalRes = await fetch(`${API_BASE}/entities/result/${jobId}`);
+        if (finalRes.status === 202) throw new Error('Job not finished (202).');
+        if (!finalRes.ok) throw new Error(`Result fetch error: ${finalRes.status}`);
+        const data = await finalRes.json();
+        extractedEntities = data.entities || [];
 
-        function displayEntities(entities) {
-            const container = document.getElementById('entitiesContainer');
-            const statsBar = document.getElementById('statsBar');
-            
-            if (!entities || entities.length === 0) {
-                container.innerHTML = '<div class="error">No entities found in the text.</div>';
-                statsBar.innerHTML = '';
-                return;
-            }
+        document.getElementById('loadingSection').style.display = 'none';
+        resultsContainer.style.display = 'block';
+        displayEntities(extractedEntities);
+        displayJSON(data);
 
-            // Calculate stats
-            const typeCount = {};
-            entities.forEach(e => {
-                const type = e.entityType || 'unknown';
-                typeCount[type] = (typeCount[type] || 0) + 1;
+        // Show validation button if there are entities with facts
+        const hasFactsToValidate = extractedEntities.some(e => e.facts && e.facts.length > 1);
+        document.getElementById('validateBtn').style.display = hasFactsToValidate ? 'block' : 'none';
+      } catch (error) {
+        responseDiv.innerHTML = `
+          <div class="error">
+            <strong>Error:</strong> ${escapeHtml(error.message)}<br>
+            Make sure the API is running at ${API_BASE}
+          </div>
+        `;
+        document.getElementById('loadingSection').style.display = 'block';
+        document.getElementById('resultsContainer').style.display = 'none';
+      } finally {
+        if (pollTimer) clearInterval(pollTimer);
+        hideOverlay();
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Extract Entities';
+      }
+    }
+
+    // ===== Status polling with ETA =====
+    // Simple ETA estimator: keep a small buffer of [time, progress] and extrapolate.
+    const etaWindow = [];
+    const ETA_WINDOW_MS = 6000;  // ~6s rolling window
+    function updateETA(nowMs, overallPercent) {
+      const t = nowMs;
+      etaWindow.push([t, overallPercent]);
+      // drop old points
+      while (etaWindow.length > 0 && (t - etaWindow[0][0]) > ETA_WINDOW_MS) {
+        etaWindow.shift();
+      }
+      if (etaWindow.length < 2) {
+        setETA(null);
+        return;
+      }
+      const [t0, p0] = etaWindow[0];
+      const [t1, p1] = etaWindow[etaWindow.length - 1];
+      const dp = p1 - p0;
+      const dtSec = (t1 - t0) / 1000;
+      if (dp <= 0 || dtSec <= 0) {
+        setETA(null);
+        return;
+      }
+      const rate = dp / dtSec; // percent per second
+      const remaining = Math.max(0, 100 - p1);
+      const etaSeconds = remaining / rate;
+      setETA(etaSeconds);
+    }
+
+    async function pollStatus(jobId) {
+      return new Promise((resolve, reject) => {
+        const stepByPhase = { ner: 1, facts: 2, finalize: 3 };
+        pollTimer = setInterval(async () => {
+          try {
+            const r = await fetch(`${API_BASE}/entities/status/${jobId}`, { cache: 'no-store' });
+            if (!r.ok) throw new Error(`Status error: ${r.status}`);
+            const s = await r.json();
+
+            // Convert API progress [0..1] → percent
+            const pct = Math.round((s.progress || 0) * 100);
+            setPercent(pct);
+            setStep(stepByPhase[s.phase] || 1);
+            setSubProgress({
+              phase: s.phase,
+              overall: pct,
+              processed: s.processed ?? 0,
+              total: s.total ?? 0
             });
+            updateETA(performance.now(), pct);
 
-            // Display stats
-            statsBar.innerHTML = `
-                <div class="stat-item">
-                    <div class="stat-number">${entities.length}</div>
-                    <div class="stat-label">Total Entities</div>
-                </div>
-                ${Object.entries(typeCount).map(([type, count]) => `
-                    <div class="stat-item">
-                        <div class="stat-number">${count}</div>
-                        <div class="stat-label">${type}s</div>
-                    </div>
-                `).join('')}
-            `;
-
-            // Display entity cards
-            container.innerHTML = entities.map(entity => {
-                const typeClass = `type-${entity.entityType || 'unknown'}`;
-                const aliases = entity.aliases && entity.aliases.length > 0 
-                    ? `<div class="entity-aliases">aka: ${entity.aliases.join(', ')}</div>` 
-                    : '';
-                
-                const facts = entity.facts && entity.facts.length > 0
-                    ? `<div class="entity-facts">
-                        ${entity.facts.map(fact => `
-                            <div class="fact-item">
-                                <span class="fact-key">${fact.key}:</span>
-                                <span class="fact-value">${fact.value}</span>
-                                <span class="fact-time">(${fact.time})</span>
-                            </div>
-                        `).join('')}
-                    </div>`
-                    : '';
-
-                return `
-                    <div class="entity-card">
-                        <div class="entity-header">
-                            <div class="entity-name">${escapeHtml(entity.name)}</div>
-                            <div class="entity-type ${typeClass}">${entity.entityType || 'unknown'}</div>
-                        </div>
-                        ${aliases}
-                        ${facts}
-                        <div class="entity-id">ID: ${entity.id} • v${entity.version}</div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function displayJSON(data) {
-            const jsonContent = document.getElementById('jsonContent');
-            jsonContent.textContent = JSON.stringify(data, null, 2);
-        }
-
-        function switchTab(tab) {
-            // Update tab buttons
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            // Update tab content
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.getElementById(tab + 'Tab').classList.add('active');
-        }
-
-        function clearAll() {
-            document.getElementById('storyText').value = '';
-            document.getElementById('response').textContent = 'Waiting for story text...';
-            document.getElementById('loadingSection').style.display = 'block';
-            document.getElementById('resultsContainer').style.display = 'none';
-            extractedEntities = [];
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // Allow Ctrl+Enter to submit
-        document.getElementById('storyText').addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && e.ctrlKey) {
-                e.preventDefault();
-                extractEntities();
+            const foot = document.getElementById('loadingFoot');
+            if (s.currentEntityName) {
+              foot.textContent = `Processing: ${s.currentEntityName} (${s.processed}/${s.total})`;
+            } else {
+              foot.textContent = s.message || 'Working…';
             }
+
+            if (s.status === 'done') {
+              clearInterval(pollTimer);
+              setPercent(100);
+              setStep(3);
+              setSubProgress({ phase:'finalize', overall:100 });
+              setETA(0);
+              resolve();
+            } else if (s.status === 'error') {
+              clearInterval(pollTimer);
+              reject(new Error(s.message || 'Unknown error'));
+            }
+          } catch (e) {
+            // transient error—stop polling and surface error
+            clearInterval(pollTimer);
+            reject(e);
+          }
+        }, 500);
+      });
+    }
+
+    // ===== Validate Facts =====
+    async function validateFacts() {
+      const validateBtn = document.getElementById('validateBtn');
+      const responseDiv = document.getElementById('response');
+      const loadingSection = document.getElementById('loadingSection');
+
+      if (!extractedEntities || extractedEntities.length === 0) {
+        responseDiv.innerHTML = '<div class="error">No entities to validate!</div>';
+        loadingSection.style.display = 'block';
+        return;
+      }
+
+      validateBtn.disabled = true;
+      validateBtn.textContent = '🔍 Validating...';
+      responseDiv.innerHTML = '<div class="loading">🔎 Cross-checking facts for contradictions and entailments...</div>';
+      loadingSection.style.display = 'block';
+
+      try {
+        const res = await fetch(`${API_BASE}/entities/validate-facts`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ entities: extractedEntities })
         });
 
-        // Check health on load
-        checkHealth();
-        setInterval(checkHealth, 30000); // Check every 30 seconds
-    </script>
+        if (!res.ok) throw new Error(`Validation error: ${res.status}`);
+        const data = await res.json();
+
+        extractedEntities = data.entities || [];
+        displayEntities(extractedEntities);
+        displayJSON({ entities: extractedEntities, count: data.count, message: data.message });
+
+        responseDiv.innerHTML = `<div class="success">✅ ${data.message}</div>`;
+        setTimeout(() => { loadingSection.style.display = 'none'; }, 2000);
+      } catch (error) {
+        responseDiv.innerHTML = `
+          <div class="error">
+            <strong>Validation Error:</strong> ${escapeHtml(error.message)}<br>
+            Make sure the API is running and the fact validator is available.
+          </div>
+        `;
+      } finally {
+        validateBtn.disabled = false;
+        validateBtn.textContent = '🔍 Cross-Check Facts';
+      }
+    }
+
+    // ===== Render helpers =====
+    function displayEntities(entities) {
+      const container = document.getElementById('entitiesContainer');
+      const statsBar = document.getElementById('statsBar');
+
+      if (!entities || entities.length === 0) {
+        container.innerHTML = '<div class="error">No entities found in the text.</div>';
+        statsBar.innerHTML = '';
+        return;
+      }
+
+      const typeCount = {};
+      entities.forEach(e => {
+        const type = e.entityType || 'unknown';
+        typeCount[type] = (typeCount[type] || 0) + 1;
+      });
+
+      statsBar.innerHTML = `
+        <div class="stat-item">
+          <div class="stat-number">${entities.length}</div>
+          <div class="stat-label">Total Entities</div>
+        </div>
+        ${Object.entries(typeCount).map(([type, count]) => `
+          <div class="stat-item">
+            <div class="stat-number">${count}</div>
+            <div class="stat-label">${escapeHtml(type)}s</div>
+          </div>
+        `).join('')}
+      `;
+
+      container.innerHTML = entities.map(entity => {
+        const typeClass = `type-${entity.entityType || 'unknown'}`;
+        const aliases = entity.aliases && entity.aliases.length > 0
+          ? `<div class="entity-aliases">aka: ${entity.aliases.map(escapeHtml).join(', ')}</div>` : '';
+        const facts = entity.facts && entity.facts.length > 0
+          ? `<div class="entity-facts">
+              ${entity.facts.map((f, idx) => {
+                let validationHtml = '';
+                let factClass = 'fact-item';
+                let cleanBadge = '';
+
+                // Determine if fact has been validated
+                const isValidated = f.hasOwnProperty('contradicts') || f.hasOwnProperty('entails');
+
+                if (isValidated) {
+                  const hasContradictions = f.contradicts && f.contradicts.length > 0;
+                  const hasEntailments = f.entails && f.entails.length > 0;
+
+                  if (hasContradictions) {
+                    factClass += ' validated-contradiction';
+                    validationHtml += `<div class="fact-validation fact-contradiction">⚠️ Contradicts fact(s): ${f.contradicts.join(', ')}</div>`;
+                  } else {
+                    factClass += ' validated-clean';
+                    cleanBadge = '<span class="fact-clean-badge">✓ NO CONFLICTS</span>';
+                  }
+
+                  if (hasEntailments) {
+                    validationHtml += `<div class="fact-validation fact-entailment">✓ Supports fact(s): ${f.entails.join(', ')}</div>`;
+                  }
+                }
+
+                return `
+                  <div class="${factClass}">
+                    <span class="fact-key">Fact #${idx}:</span>
+                    <span class="fact-value">${escapeHtml(f.fact || '')}</span>
+                    ${cleanBadge}
+                    <span class="fact-time">
+                      [${escapeHtml((f.method || 'rule').toUpperCase())} • conf=${(f.confidence ?? '').toString()} • ${escapeHtml((f.evidence?.timeId) || '')}]
+                    </span>
+                    ${f.sourceText ? `<div style="margin-top:4px;color:#777;font-size:11px;">↳ <em>${escapeHtml(f.sourceText)}</em></div>` : ''}
+                    ${validationHtml}
+                  </div>
+                `;
+              }).join('')}
+            </div>`
+          : '';
+
+        return `
+          <div class="entity-card">
+            <div class="entity-header">
+              <div class="entity-name">${escapeHtml(entity.name || '')}</div>
+              <div class="entity-type ${typeClass}">${escapeHtml(entity.entityType || 'unknown')}</div>
+            </div>
+            ${aliases}
+            ${facts}
+            <div class="entity-id">ID: ${escapeHtml(entity.id || '')} • v${escapeHtml(String(entity.version ?? '1'))}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function displayJSON(data) {
+      const jsonContent = document.getElementById('jsonContent');
+      jsonContent.textContent = JSON.stringify(data, null, 2);
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById(tab + 'Tab').classList.add('active');
+    }
+
+    function clearAll() {
+      document.getElementById('storyText').value = '';
+      document.getElementById('response').textContent = 'Waiting for story text...';
+      document.getElementById('loadingSection').style.display = 'block';
+      document.getElementById('resultsContainer').style.display = 'none';
+      document.getElementById('validateBtn').style.display = 'none';
+      extractedEntities = [];
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = String(text ?? '');
+      return div.innerHTML;
+    }
+
+    // Shortcuts + Health
+    document.getElementById('storyText').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && e.ctrlKey) {
+        e.preventDefault();
+        startExtractJob();
+      }
+    });
+    checkHealth();
+    setInterval(checkHealth, 30000);
+  </script>
 </body>
 </html>

@@ -1,1 +1,78 @@
-This is the troubleshooting file
+# Continuity AI Prototype - Entity Extraction
+
+This folder contains a minimal AI entity extraction system for analyzing story text and identifying characters, objects, locations, events, organizations, and concepts.
+
+## What's Included
+
+### Core Functionality
+- **Entity Extraction API**: FastAPI-based REST API for extracting entities from text
+- **Test UI**: Simple web interface for testing entity extraction (`test-ui/index.html`)
+- **NER Model**: BERT-based Named Entity Recognition using transformers
+- **Entity Storage**: JSON-based persistent storage for extracted entities
+
+### Key Files
+- `main.py` - Entry point for the API server
+- `requirements.txt` - Python dependencies
+- `README.md` - Full documentation
+- `ENTITY_EXTRACTION.md` - API endpoint documentation
+- `test_ner_direct.py` - Test script for entity extraction
+
+### Directory Structure
+```
+AI/
+├── config/          # Configuration settings
+├── models/          # NER extractor and model files
+├── database/        # Entity storage
+├── interfaces/      # Web API
+├── utils/           # Logging utilities
+├── test-ui/         # Web UI for testing
+└── data/            # Stored entities
+```
+
+## Quick Start
+
+1. **Install dependencies**:
+   ```bash
+   cd continuity-ai-prototype/AI
+   pip install -r requirements.txt
+   ```
+
+2. **Run the API server**:
+   ```bash
+   python main.py
+   ```
+   The API will start on `http://localhost:8002`
+
+3. **Open the test UI**:
+   - Open `test-ui/index.html` in your browser
+   - Or navigate to it directly from the file system
+
+4. **Test entity extraction**:
+   - Enter story text in the UI
+   - Click "Extract Entities"
+   - View extracted entities in card or JSON format
+
+## API Endpoints
+
+- `GET /health` - Health check
+- `POST /entities/extract` - Extract entities from text
+- `GET /entities` - Get all entities
+- `GET /entities/{entity_id}` - Get specific entity
+- `GET /entities/type/{type}` - Get entities by type
+- `GET /entities/search/{query}` - Search entities
+
+See `ENTITY_EXTRACTION.md` for full API documentation.
+
+## Testing
+
+Run the test script:
+```bash
+python test_ner_direct.py
+```
+
+## Notes
+
+- The system uses BERT-based NER (dslim/bert-base-NER) for entity extraction
+- Entities are stored in `data/entities.json`
+- The test UI connects to the API at `http://localhost:8002`
+- No LLM models are required - uses transformer-based NER only
