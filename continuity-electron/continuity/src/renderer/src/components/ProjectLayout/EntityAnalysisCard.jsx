@@ -16,8 +16,8 @@ const EntityAnalysisCard = ({ entity, editable = false, onAccept, onReject }) =>
 
               {editable && (
                 <span className="fact-actions">
-                  <button onClick={() => onAccept(entity.id, fact.id)}>Accept</button>
-                  <button onClick={() => onReject(entity.id, fact.id)}>Reject</button>
+                  <button onClick={(e) => { e.stopPropagation(); onAccept(entity.id, fact.id); }}>Accept</button>
+                  <button onClick={(e) => { e.stopPropagation(); onReject(entity.id, fact.id); }}>Reject</button>
                 </span>
               )}
 
