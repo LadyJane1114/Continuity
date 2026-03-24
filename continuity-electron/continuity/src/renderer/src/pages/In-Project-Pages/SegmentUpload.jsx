@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { extractEntities } from '../../services/aiService';
 import EntityAnalysisCard from '../../components/ProjectLayout/EntityAnalysisCard';
 import LoadingOverlay from '../../components/ProjectLayout/LoadingOverlay';
@@ -8,14 +8,60 @@ const SegmentUpload = ({setSegments}) => {
     const [analysis, setAnalysis] = useState(null);
     const [loading, setLoading] = useState(false);
     const [segmentTitle, setSegmentTitle] = useState("");
-    const [loadingProgress, setLoadingProgress] = useState({
-        percent:0,
-        step: "1/3",
-        subText: "NER progress: 0%",
-        eta: "calculating…"
-    })
+    const [progress, setProgress] = useState(0);
+    const [step, setStep] = useState("1/3");
+    const [subText, setSubText] = useState("");
+    const [eta, setEta] = useState("calculating…");
 
-    
+    useEffect(() => {
+        if (!loading) return;
+
+        const start = Date.now();
+
+        setProgress(0);
+        setStep("1/3");
+        setSubText("Extracting entities…");
+
+        const interval = setInterval(() => {
+            setProgress(prev => {
+                const next = prev + 5;
+
+                if (next >= 30) {
+                    setStep("2/3");
+                    setSubText("Aggregating facts…");
+                }
+
+                if (next >= 70) {
+                    setStep("3/3");
+                    setSubText("Rendering results…");
+                }
+
+                const elapsed = (Date.now() - start) / 1000;
+
+                if (elapsed > 1) {
+                    const rate = next / elapsed; // % per second
+
+                    if (rate > 0) {
+                        const remaining = 100 - next;
+                        const etaSeconds = remaining / rate;
+
+                        const mm = String(Math.floor(etaSeconds / 60)).padStart(2, "0");
+                        const ss = String(Math.floor(etaSeconds % 60)).padStart(2, "0");
+
+                        setEta(`${mm}:${ss}`);
+                    }
+                }
+
+                if (next >= 90) return prev;
+
+                return next;
+            });
+        }, 300);
+
+        return () => clearInterval(interval);
+    }, [loading]);
+
+
     const handleSubmit = async(e) => {
         e.preventDefault();
 
@@ -47,9 +93,15 @@ const SegmentUpload = ({setSegments}) => {
         } catch(error){
             console.error(error);
         } finally {
-            setSegmentTitle("");
-            setSegment("");
-            setLoading(false); // hide the overlay
+            setProgress(100);
+            setStep("3/3");
+            setSubText("Done!");
+
+            setTimeout(() => {
+                setSegmentTitle("");
+                setSegment("");
+                setLoading(false);
+            }, 400); // hide the overlay
         }
 
 
@@ -133,7 +185,12 @@ const SegmentUpload = ({setSegments}) => {
   return (
     <>
     {/* loading overlay appears if segment is loading */}
-    {loading && <LoadingOverlay {...loadingProgress} />}
+          {loading && <LoadingOverlay
+              percent={progress}
+              step={step}
+              subText={subText}
+              eta={eta}
+          />}
 
     <form className='segmentUpload' onSubmit={handleSubmit}>
         <label htmlFor='userSegment'>Submit your Story Segment:</label>
