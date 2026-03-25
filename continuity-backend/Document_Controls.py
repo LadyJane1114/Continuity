@@ -60,16 +60,29 @@ def _normalize_fact_text(text: str) -> str:
     return re.sub(r"\s+", " ", value).strip()
 
 
-def _infer_conflict_key(fact_text: str) -> Optional[str]:
+def _infer_conflict_key(fact_text: str, entity_id: str = None) -> Optional[str]:
+    """Generate a conflict key for grouping potentially contradictory facts.
+    
+    Strategy: Use entity-based grouping so all facts about same entity can be
+    checked for contradictions, with special recognition for known attribute patterns.
+    """
     lower = fact_text.lower()
+    
+    # Specific high-confidence attribute patterns (always group these)
     if " eye" in lower or " eyes" in lower:
         return "attribute:eyes"
     if " hair" in lower:
         return "attribute:hair"
-    if " age" in lower or " years old" in lower:
+    if " age" in lower or " years old" in lower or " b." in lower or " born" in lower:
         return "attribute:age"
-    if " is from " in lower or " lives in " in lower or " located in " in lower:
+    if " is from " in lower or " lives in " in lower or " located in " in lower or " home" in lower:
         return "attribute:location"
+    
+    # General fallback: use entity-based key so all facts about entity can be compared
+    # This catches contradictory facts even if they use different predicates
+    if entity_id:
+        return f"entity:{entity_id}"
+    
     return None
 
 
@@ -274,29 +287,32 @@ def upsert_entity(project_id: str, story_id: str, entity_payload: Dict[str, Any]
 
 
 def _attach_conflicts(entity_id: str, new_fact: Dict[str, Any]) -> Dict[str, Any]:
-    conflict_key = _infer_conflict_key(new_fact.get("fact", ""))
+    conflict_key = _infer_conflict_key(new_fact.get("fact", ""), entity_id)
     if not conflict_key:
         return new_fact
 
+    # First try: search for facts with same conflict_key
     candidates = fact.search(
         (Query().entity_id == entity_id)
         & (Query().id != new_fact["id"])
         & (Query().conflict_key == conflict_key)
         & (Query().status != "rejected")
     )
+    
+    # Filter to only those with different normalized facts (potential contradictions)
     conflicting = [c for c in candidates if c.get("normalized_fact") != new_fact.get("normalized_fact")]
-    if not conflicting:
-        return new_fact
+    
+    if conflicting:
+        # Assign to existing conflict group or create new one
+        group_id = conflicting[0].get("conflict_group_id") or id_generator("cfg_", review_session)
+        new_fact["conflict_group_id"] = group_id
+        new_fact["contradicts"] = _safe_unique(new_fact.get("contradicts", []) + [c["id"] for c in conflicting])
 
-    group_id = conflicting[0].get("conflict_group_id") or id_generator("cfg_", review_session)
-    new_fact["conflict_group_id"] = group_id
-    new_fact["contradicts"] = _safe_unique(new_fact.get("contradicts", []) + [c["id"] for c in conflicting])
-
-    for existing in conflicting:
-        existing["conflict_group_id"] = group_id
-        existing["contradicts"] = _safe_unique(existing.get("contradicts", []) + [new_fact["id"]])
-        existing["updated_at"] = _now_ts()
-        fact.update(existing, Query().id == existing["id"])
+        for existing in conflicting:
+            existing["conflict_group_id"] = group_id
+            existing["contradicts"] = _safe_unique(existing.get("contradicts", []) + [new_fact["id"]])
+            existing["updated_at"] = _now_ts()
+            fact.update(existing, Query().id == existing["id"])
 
     return new_fact
 
@@ -333,7 +349,7 @@ def upsert_fact(project_id: str, story_id: str, entity_id: str, fact_payload: Di
         "confidence": float(fact_payload.get("confidence", 0.0)),
         "method": fact_payload.get("method", "llm"),
         "status": "pending",
-        "conflict_key": _infer_conflict_key(text),
+        "conflict_key": _infer_conflict_key(text, entity_id),
         "conflict_group_id": None,
         "contradicts": [],
         "reviewed_by": None,
