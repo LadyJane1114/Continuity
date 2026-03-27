@@ -30,9 +30,9 @@ else:
     FACT_MODEL_PATH = MODEL_PATH
 
 # NER Model Configuration
-# Use NuNER (high-performance, fast)
-NER_MODEL_NAME = os.getenv("NER_MODEL_NAME", "numind/NuNER-v2.0")
-NER_CONFIDENCE_THRESHOLD = float(os.getenv("NER_CONFIDENCE_THRESHOLD", "0.2"))
+# Use BERT-base NER (reliable, well-tested)
+NER_MODEL_NAME = os.getenv("NER_MODEL_NAME", "dslim/bert-base-NER")
+NER_CONFIDENCE_THRESHOLD = float(os.getenv("NER_CONFIDENCE_THRESHOLD", "0.55"))
 
 # Local Model Cache Configuration
 # Store HuggingFace models in project folder instead of user cache
@@ -54,9 +54,22 @@ API_VERSION = "1.0.0"
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOG_FILE = "./logs/app.log"
 
+# ---------------- Fact Extraction Configuration ----------------
+# Defaults here are intentionally conservative and can be overridden via .env.
+FACT_USE_LLM =                      os.getenv("FACT_USE_LLM", "true").strip().lower() in {"1", "true", "yes", "on"}
+MAX_FACTS_PER_ENTITY = int(         os.getenv("MAX_FACTS_PER_ENTITY", "10"))
+MAX_FACTS_PER_SENTENCE = int(       os.getenv("MAX_FACTS_PER_SENTENCE", "3"))
+FACT_RULES_FALLBACK =               os.getenv("FACT_RULES_FALLBACK", "false").strip().lower() in {"1", "true", "yes", "on"}
+FACT_EXTRACTION_TEMPERATURE = float(os.getenv("FACT_EXTRACTION_TEMPERATURE", "0.8"))
+FACT_EXTRACTION_MAX_TOKENS = int(   os.getenv("FACT_EXTRACTION_MAX_TOKENS", "300"))
+FACT_AUTO_VALIDATE =                os.getenv("FACT_AUTO_VALIDATE", "false").strip().lower() in {"1", "true", "yes", "on"}
+
 # ---------------- Performance Configuration ----------------
 RESPONSE_TIMEOUT = 120  # seconds for LLM classification
 MAX_CONCURRENT_REQUESTS = 10
+
+# Fact extraction confidence default (lower value keeps more extracted facts)
+FACT_CONFIDENCE_THRESHOLD = float(os.getenv("FACT_CONFIDENCE_THRESHOLD", "0.50"))
 
 
 # Export directory (where we write the final response JSON)

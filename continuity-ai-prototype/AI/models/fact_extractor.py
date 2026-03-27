@@ -4,6 +4,17 @@ import json
 import logging
 from typing import Dict, List, Any, Optional, Tuple, Callable
 
+from config.settings import (
+    FACT_AUTO_VALIDATE,
+    FACT_CONFIDENCE_THRESHOLD,
+    FACT_EXTRACTION_MAX_TOKENS,
+    FACT_EXTRACTION_TEMPERATURE,
+    FACT_RULES_FALLBACK,
+    FACT_USE_LLM,
+    MAX_FACTS_PER_ENTITY,
+    MAX_FACTS_PER_SENTENCE,
+)
+
 logger = logging.getLogger(__name__)
 
 Sentence = Tuple[int, int, str]  # (start, end, sentence_text)
@@ -12,20 +23,24 @@ class FactExtractor:
     def __init__(
         self,
         llm=None,
-        use_llm: bool = True,
-        max_facts_per_entity: int = 3,
-        rules_fallback: bool = False,
-        temperature: float = 0.2,
-        max_tokens: int = 160,
-        auto_validate_facts: bool = False,
+        use_llm: bool = FACT_USE_LLM,
+        max_facts_per_entity: int = MAX_FACTS_PER_ENTITY,
+        max_facts_per_sentence: int = MAX_FACTS_PER_SENTENCE,
+        rules_fallback: bool = FACT_RULES_FALLBACK,
+        temperature: float = FACT_EXTRACTION_TEMPERATURE,
+        max_tokens: int = FACT_EXTRACTION_MAX_TOKENS,
+        fact_confidence_threshold: float = FACT_CONFIDENCE_THRESHOLD,
+        auto_validate_facts: bool = FACT_AUTO_VALIDATE,
         fact_validator=None,
     ):
         self.llm = llm
         self.use_llm = use_llm
         self.max_facts_per_entity = max_facts_per_entity
+        self.max_facts_per_sentence = max_facts_per_sentence
         self.rules_fallback = rules_fallback
         self.temperature = temperature
         self.max_tokens = max_tokens
+        self.fact_confidence_threshold = fact_confidence_threshold
         self.auto_validate_facts = auto_validate_facts
         self.fact_validator = fact_validator
 
@@ -94,7 +109,7 @@ class FactExtractor:
                             start,
                             end,
                             time_id,
-                            confidence=0.80,
+                            confidence=self.fact_confidence_threshold,
                             method="llm",
                         )
                     )
@@ -180,7 +195,7 @@ class FactExtractor:
             f"Target entity: {name}\n"
             'Return JSON ONLY with EXACTLY this schema:\n{"facts": ["<fact-1>", "<fact-2>"]}\n'
             "Rules:\n"
-            "- Include 0–8 facts explicitly supported by THIS sentence.\n"
+            f"- Include 0-{self.max_facts_per_sentence} facts explicitly supported by THIS sentence.\n"
             "- No external knowledge.\n"
             "- Use DOUBLE quotes. Do NOT use single quotes.\n"
             "- Do NOT include markdown/code fences or any extra text.\n"
@@ -197,6 +212,7 @@ class FactExtractor:
             return []
         data = self._safe_json(text)
         raw_facts = [s.strip() for s in data.get("facts", []) if isinstance(s, str) and s.strip()]
+        raw_facts = raw_facts[: self.max_facts_per_sentence]
 
         # Filter out garbage facts (fragments, incomplete sentences)
         facts = []

@@ -6,7 +6,21 @@ import sys
 from models.ner_extractor import HybridNERExtractor
 from interfaces.web_api import create_app
 from utils.logger import setup_logging
-from config.settings import API_HOST, API_PORT, EXPORT_JSON_DIR, FACT_MODEL_PATH
+from config.settings import (
+    API_HOST,
+    API_PORT,
+    EXPORT_JSON_DIR,
+    FACT_AUTO_VALIDATE,
+    FACT_CONFIDENCE_THRESHOLD,
+    FACT_EXTRACTION_MAX_TOKENS,
+    FACT_EXTRACTION_TEMPERATURE,
+    FACT_MODEL_PATH,
+    FACT_RULES_FALLBACK,
+    FACT_USE_LLM,
+    MAX_FACTS_PER_ENTITY,
+    MAX_FACTS_PER_SENTENCE,
+    NER_MODEL_NAME,
+)
 from models.fact_extractor import FactExtractor
 from models.llm_manager import LLMManager
 
@@ -21,11 +35,24 @@ async def run_web_api(ner_extractor: HybridNERExtractor):
     llm = LLMManager(model_path=FACT_MODEL_PATH)
     fact_extractor = FactExtractor(
         llm=llm,
-        use_llm=True,
-        max_facts_per_entity=8,
-        rules_fallback=False,
-        temperature=0.2,
-        max_tokens=300,
+        use_llm=FACT_USE_LLM,
+        max_facts_per_entity=MAX_FACTS_PER_ENTITY,
+        max_facts_per_sentence=MAX_FACTS_PER_SENTENCE,
+        rules_fallback=FACT_RULES_FALLBACK,
+        temperature=FACT_EXTRACTION_TEMPERATURE,
+        max_tokens=FACT_EXTRACTION_MAX_TOKENS,
+        fact_confidence_threshold=FACT_CONFIDENCE_THRESHOLD,
+        auto_validate_facts=FACT_AUTO_VALIDATE,
+    )
+
+    logger.info(
+        "Fact extractor config: use_llm=%s, max_facts_per_entity=%s, max_facts_per_sentence=%s, temp=%s, max_tokens=%s, confidence=%s",
+        FACT_USE_LLM,
+        MAX_FACTS_PER_ENTITY,
+        MAX_FACTS_PER_SENTENCE,
+        FACT_EXTRACTION_TEMPERATURE,
+        FACT_EXTRACTION_MAX_TOKENS,
+        FACT_CONFIDENCE_THRESHOLD,
     )
 
     app = create_app(ner_extractor, fact_extractor=fact_extractor)
@@ -49,7 +76,7 @@ async def main():
     logger.info("Initializing entity extraction system...")
     try:
         logger.info("Loading BERT NER model...")
-        ner_extractor = HybridNERExtractor(model_name="dslim/bert-base-NER")
+        ner_extractor = HybridNERExtractor(model_name=NER_MODEL_NAME)
         logger.info("[OK] NER model loaded successfully")
         logger.info("Starting web API server...")
         await run_web_api(ner_extractor)
