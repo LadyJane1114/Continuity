@@ -30,9 +30,9 @@ else:
     FACT_MODEL_PATH = MODEL_PATH
 
 # NER Model Configuration
-# Use BERT-base NER (reliable, well-tested)
-NER_MODEL_NAME = os.getenv("NER_MODEL_NAME", "dslim/bert-base-NER")
-NER_CONFIDENCE_THRESHOLD = float(os.getenv("NER_CONFIDENCE_THRESHOLD", "0.85"))
+# Use NuNER (high-performance, fast)
+NER_MODEL_NAME = os.getenv("NER_MODEL_NAME", "numind/NuNER-v2.0")
+NER_CONFIDENCE_THRESHOLD = float(os.getenv("NER_CONFIDENCE_THRESHOLD", "0.2"))
 
 # Local Model Cache Configuration
 # Store HuggingFace models in project folder instead of user cache

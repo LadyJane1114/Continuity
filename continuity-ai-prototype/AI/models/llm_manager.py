@@ -21,11 +21,11 @@ class LLMManager:
         self._lock = asyncio.Lock()
         self.llm = Llama(
             model_path=self.model_path,
-            n_ctx=256,
+            n_ctx=2048,
             n_threads=4,
             n_gpu_layers=0,
-            n_batch=4,
-            n_ubatch=4,
+            n_batch=64,
+            n_ubatch=64,
             verbose=False,
             use_mlock=False,
             use_mmap=True,

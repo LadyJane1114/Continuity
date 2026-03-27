@@ -22,10 +22,10 @@ async def run_web_api(ner_extractor: HybridNERExtractor):
     fact_extractor = FactExtractor(
         llm=llm,
         use_llm=True,
-        max_facts_per_entity=3,
+        max_facts_per_entity=8,
         rules_fallback=False,
         temperature=0.2,
-        max_tokens=120,
+        max_tokens=300,
     )
 
     app = create_app(ner_extractor, fact_extractor=fact_extractor)

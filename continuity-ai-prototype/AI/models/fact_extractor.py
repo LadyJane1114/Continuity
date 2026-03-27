@@ -180,7 +180,7 @@ class FactExtractor:
             f"Target entity: {name}\n"
             'Return JSON ONLY with EXACTLY this schema:\n{"facts": ["<fact-1>", "<fact-2>"]}\n'
             "Rules:\n"
-            "- Include 0–3 facts explicitly supported by THIS sentence.\n"
+            "- Include 0–8 facts explicitly supported by THIS sentence.\n"
             "- No external knowledge.\n"
             "- Use DOUBLE quotes. Do NOT use single quotes.\n"
             "- Do NOT include markdown/code fences or any extra text.\n"
