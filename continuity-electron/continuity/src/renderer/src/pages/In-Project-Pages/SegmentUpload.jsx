@@ -285,16 +285,6 @@ const SegmentUpload = ({setSegments}) => {
                         ))}
                     </div>
                 )}
-                <div style={{marginTop: "0.75rem"}}>
-                    <button
-                        type='button'
-                        onClick={handleSubmitReview}
-                        disabled={isSubmittingReview || countPendingFacts() > 0 || !analysis.reviewSessionId}
-                    >
-                        {isSubmittingReview ? "Submitting..." : "Submit Canon Decisions"}
-                    </button>
-                    {countPendingFacts() > 0 && <span style={{marginLeft: "0.5rem"}}>Resolve all facts before submit.</span>}
-                </div>
             </div>
         )}
         {analysis && analysis.entities.map(entity => (
@@ -307,6 +297,23 @@ const SegmentUpload = ({setSegments}) => {
                 onReject={handleReject}
             />
         ))}
+          {analysis && (
+              <div className="bottom-action-bar" style={{ margin: "2rem 0", textAlign: "center" }}>
+                  <button
+                      type='button'
+                      onClick={handleSubmitReview}
+                      disabled={isSubmittingReview || countPendingFacts() > 0 || !analysis.reviewSessionId}
+                  >
+                      {isSubmittingReview ? "Submitting..." : "Submit Canon Decisions"}
+                  </button>
+
+                  {countPendingFacts() > 0 && (
+                      <div style={{ marginTop: "0.5rem" }}>
+                          Resolve all facts before submit.
+                      </div>
+                  )}
+              </div>
+          )}
     </>
   )
 }

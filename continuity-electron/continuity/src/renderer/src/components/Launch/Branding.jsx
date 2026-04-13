@@ -1,3 +1,4 @@
+import LogoWSpash from '../../assets/resources/LogoWSplash.png'
 
 const Branding = () => {
   return (
@@ -6,7 +7,7 @@ const Branding = () => {
     //Version - Own comp? or Just update this component with the version number?
     <>
           <div className="contLogo">
-              <img src="../../resources/LogoWSplash.png" alt="Continuity Logo"/>
+              <img src={LogoWSpash} alt="Continuity Logo"/>
               <code>Version 1.0</code>
           </div>
     </>
