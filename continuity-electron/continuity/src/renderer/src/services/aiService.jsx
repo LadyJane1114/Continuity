@@ -12,12 +12,17 @@ function normalizeResult(result, fallbackText) {
             facts: (entity.facts || []).map((fact, index) => ({
                 id: fact.id || `${entity.id}-fact-${index}`,
                 text: fact.fact,
+                entityId: fact.entity_id,
                 accepted: fact.status === "approved" ? true : fact.status === "rejected" ? false : null,
                 confidence: fact.confidence,
                 sourceText: fact.sourceText,
                 status: fact.status,
                 conflictGroupId: fact.conflict_group_id,
                 contradicts: fact.contradicts || [],
+                matchConfidence: fact.entity_match_confidence,
+                matchAmbiguous: fact.entity_match_ambiguous,
+                matchCandidates: fact.entity_match_candidates || [],
+                assignmentConfirmed: fact.entity_assignment_confirmed,
             })),
         })),
     };
@@ -50,7 +55,7 @@ export async function extractEntities(text) {
     throw new Error("extractEntities(text) is deprecated. Use uploadSegment(projectId, text, title).");
 }
 
-export async function reviewFact(factId, status, reviewedBy, decisionReason) {
+export async function reviewFact(factId, status, reviewedBy, decisionReason, confirmAssignment = false) {
     const res = await fetch(`${API_BASE}/facts/${factId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -58,6 +63,7 @@ export async function reviewFact(factId, status, reviewedBy, decisionReason) {
             status,
             reviewed_by: reviewedBy,
             decision_reason: decisionReason,
+            confirm_assignment: Boolean(confirmAssignment),
         }),
     });
     if (!res.ok) {

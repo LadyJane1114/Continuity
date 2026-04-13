@@ -10,8 +10,17 @@ const emptyForm = {
   aliases: "",
   description: "",
   notes: "",
-  confidence: "0",
 };
+
+const ENTITY_TYPE_OPTIONS = [
+  { label: "Character", value: "character" },
+  { label: "Location", value: "location" },
+  { label: "Organization", value: "organization" },
+  { label: "Event", value: "event" },
+  { label: "Concept", value: "concept" },
+  { label: "Item", value: "item" },
+  { label: "Creature", value: "creature" },
+];
 
 const CanonDB = () => {
   const [project, setProject] = useState(null);
@@ -24,6 +33,9 @@ const CanonDB = () => {
   const [editingId, setEditingId] = useState(null);
   const [mergeSourceId, setMergeSourceId] = useState("");
   const [mergeTargetId, setMergeTargetId] = useState("");
+  const [syncStatus, setSyncStatus] = useState({ pendingCount: 0, errorCount: 0, totalSubmitted: 0, sessions: [] });
+  const [syncMessage, setSyncMessage] = useState("");
+  const [suggestedEntities, setSuggestedEntities] = useState([]);
 
   useEffect(() => {
     let mounted = true;
@@ -35,6 +47,8 @@ const CanonDB = () => {
         setProject(currentProject);
         if (currentProject?.id) {
           await refreshEntities(currentProject.id, "", mounted);
+          await refreshSuggestedEntities(currentProject.id, mounted);
+          await refreshSyncStatus(currentProject.id, mounted);
         }
       } catch (err) {
         if (mounted) {
@@ -62,6 +76,33 @@ const CanonDB = () => {
     const data = await res.json();
     if (mounted) {
       setEntities(data.entities || []);
+    }
+  };
+
+  const refreshSuggestedEntities = async (projectId, mounted = true) => {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/canon/suggestions`);
+    if (!res.ok) {
+      throw new Error(`Failed to load suggested entities (${res.status})`);
+    }
+    const data = await res.json();
+    if (mounted) {
+      setSuggestedEntities(data.entities || []);
+    }
+  };
+
+  const refreshSyncStatus = async (projectId, mounted = true) => {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/canon/sync-status`);
+    if (!res.ok) {
+      throw new Error(`Failed to load sync status (${res.status})`);
+    }
+    const data = await res.json();
+    if (mounted) {
+      setSyncStatus({
+        pendingCount: data.pendingCount || 0,
+        errorCount: data.errorCount || 0,
+        totalSubmitted: data.totalSubmitted || 0,
+        sessions: data.sessions || [],
+      });
     }
   };
 
@@ -94,12 +135,12 @@ const CanonDB = () => {
       name: form.name.trim(),
       type: form.type.trim() || "concept",
       aliases: form.aliases
-        .split(",")
+        .split(/[\n,]/)
         .map((value) => value.trim())
         .filter(Boolean),
       description: form.description.trim() || null,
       notes: form.notes.trim() || null,
-      confidence: Number.parseFloat(form.confidence) || 0,
+      confidence: 1,
     };
 
     try {
@@ -118,6 +159,8 @@ const CanonDB = () => {
       }
 
       await refreshEntities(project.id);
+  await refreshSuggestedEntities(project.id);
+      await refreshSyncStatus(project.id);
       setForm(emptyForm);
       setEditingId(null);
     } catch (err) {
@@ -132,11 +175,56 @@ const CanonDB = () => {
     setForm({
       name: entity.name || "",
       type: entity.entityType || entity.type || "concept",
-      aliases: (entity.aliases || []).join(", "),
+      aliases: (entity.aliases || []).join("\n"),
       description: entity.description || "",
       notes: entity.notes || "",
-      confidence: String(entity.confidence ?? 0),
     });
+  };
+
+  const handlePromoteSuggestion = async (entity) => {
+    if (!project?.id) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/projects/${project.id}/canon/entities/${entity.id}/promote`, { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || `Promote failed (${res.status})`);
+      }
+      const data = await res.json();
+      setForm({
+        name: data.entity?.name || entity.name || "",
+        type: data.entity?.entityType || entity.entityType || "concept",
+        aliases: (data.entity?.aliases || entity.aliases || []).join("\n"),
+        description: data.entity?.description || entity.description || "",
+        notes: data.entity?.notes || entity.notes || "",
+      });
+      await refreshEntities(project.id);
+      await refreshSuggestedEntities(project.id);
+      await refreshSyncStatus(project.id);
+    } catch (err) {
+      setError(err.message || "Promote failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRejectSuggestion = async (entity) => {
+    if (!project?.id) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/entities/${entity.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || `Reject failed (${res.status})`);
+      }
+      await refreshSuggestedEntities(project.id);
+    } catch (err) {
+      setError(err.message || "Reject failed");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async (entityId) => {
@@ -150,6 +238,8 @@ const CanonDB = () => {
         throw new Error(data.detail || `Delete failed (${res.status})`);
       }
       await refreshEntities(project.id);
+      await refreshSuggestedEntities(project.id);
+      await refreshSyncStatus(project.id);
     } catch (err) {
       setError(err.message || "Delete failed");
     } finally {
@@ -175,10 +265,33 @@ const CanonDB = () => {
         throw new Error(data.detail || `Merge failed (${res.status})`);
       }
       await refreshEntities(project.id);
+      await refreshSuggestedEntities(project.id);
+      await refreshSyncStatus(project.id);
       setMergeSourceId("");
       setMergeTargetId("");
     } catch (err) {
       setError(err.message || "Merge failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRetrySync = async () => {
+    if (!project?.id) return;
+    setSaving(true);
+    setError(null);
+    setSyncMessage("");
+    try {
+      const res = await fetch(`${API_BASE}/projects/${project.id}/canon/resync-pending`, { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || `Retry failed (${res.status})`);
+      }
+      const data = await res.json();
+      setSyncMessage(`Retried ${data.retryCount || 0} sessions; ${data.successCount || 0} succeeded.`);
+      await refreshSyncStatus(project.id);
+    } catch (err) {
+      setError(err.message || "Retry failed");
     } finally {
       setSaving(false);
     }
@@ -204,6 +317,19 @@ const CanonDB = () => {
         <p style={{ margin: 0, opacity: 0.8 }}>Project: {project.name || project.id}</p>
       </div>
 
+      <div style={{ display: "grid", gap: "0.5rem", padding: "1rem", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "12px" }}>
+        <strong>Vector Sync Status</strong>
+        <div style={{ opacity: 0.85 }}>
+          Submitted Sessions: {syncStatus.totalSubmitted} · Pending: {syncStatus.pendingCount} · Errors: {syncStatus.errorCount}
+        </div>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <button type="button" onClick={handleRetrySync} disabled={saving || (syncStatus.pendingCount + syncStatus.errorCount) === 0}>
+            Retry Pending Sync
+          </button>
+          {syncMessage ? <span style={{ opacity: 0.85 }}>{syncMessage}</span> : null}
+        </div>
+      </div>
+
       {error && <div style={{ padding: "0.75rem", background: "#3a1d1d", color: "#ffd7d7", borderRadius: "8px" }}>{error}</div>}
 
       <form onSubmit={handleSearch} style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
@@ -221,10 +347,19 @@ const CanonDB = () => {
         <strong>{editingId ? "Edit Entity" : "Create Entity"}</strong>
         <div style={{ display: "grid", gap: "0.5rem", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
           <input required type="text" value={form.name} onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))} placeholder="Name" />
-          <input type="text" value={form.type} onChange={(event) => setForm((prev) => ({ ...prev, type: event.target.value }))} placeholder="Type" />
-          <input type="text" value={form.confidence} onChange={(event) => setForm((prev) => ({ ...prev, confidence: event.target.value }))} placeholder="Confidence" />
+          <select value={form.type} onChange={(event) => setForm((prev) => ({ ...prev, type: event.target.value }))}>
+            {ENTITY_TYPE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
         </div>
-        <input type="text" value={form.aliases} onChange={(event) => setForm((prev) => ({ ...prev, aliases: event.target.value }))} placeholder="Aliases, comma separated" />
+        <textarea
+          value={form.aliases}
+          onChange={(event) => setForm((prev) => ({ ...prev, aliases: event.target.value }))}
+          placeholder="Aliases, one per line or comma separated"
+          rows={3}
+        />
+        <small style={{ opacity: 0.75 }}>Use one alias per line, or separate multiple aliases with commas.</small>
         <textarea value={form.description} onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))} placeholder="Description" rows={3} />
         <textarea value={form.notes} onChange={(event) => setForm((prev) => ({ ...prev, notes: event.target.value }))} placeholder="Notes" rows={3} />
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
@@ -236,6 +371,33 @@ const CanonDB = () => {
           )}
         </div>
       </form>
+
+      <div style={{ display: "grid", gap: "0.75rem", padding: "1rem", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "12px" }}>
+        <strong>Detected Entity Suggestions</strong>
+        <p style={{ margin: 0, opacity: 0.8 }}>These are extracted suggestions, not canonical entities yet. Promote one when you want to create a real Canon record.</p>
+        {suggestedEntities.length === 0 ? (
+          <p style={{ margin: 0 }}>No suggestions waiting.</p>
+        ) : (
+          suggestedEntities.map((entity) => (
+            <div key={entity.id} style={{ padding: "0.75rem", border: "1px dashed rgba(255,255,255,0.18)", borderRadius: "10px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+                <div>
+                  <strong>{entity.name}</strong> <span style={{ opacity: 0.75 }}>({entity.entityType || entity.type || "concept"})</span>
+                  <div style={{ opacity: 0.75, marginTop: "0.25rem" }}>Detected by extraction · Facts: {Array.isArray(entity.facts) ? entity.facts.length : 0}</div>
+                </div>
+                <button type="button" onClick={() => handlePromoteSuggestion(entity)} disabled={saving}>
+                  Create Canon Entity
+                </button>
+                <button type="button" onClick={() => handleRejectSuggestion(entity)} disabled={saving}>
+                  Reject Suggestion
+                </button>
+              </div>
+              {entity.aliases?.length ? <div style={{ marginTop: "0.5rem" }}>Aliases: {entity.aliases.join(", ")}</div> : null}
+              {entity.description ? <div style={{ marginTop: "0.25rem" }}>{entity.description}</div> : null}
+            </div>
+          ))
+        )}
+      </div>
 
       <form onSubmit={handleMerge} style={{ display: "grid", gap: "0.75rem", padding: "1rem", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "12px" }}>
         <strong>Merge Entities</strong>

@@ -25,6 +25,7 @@ class FactDecisionRequest(BaseModel):
     status: str = Field(pattern="^(pending|approved|rejected)$")
     reviewed_by: Optional[str] = None
     decision_reason: Optional[str] = None
+    confirm_assignment: bool = False
 
 
 class FactEntityAssignmentRequest(BaseModel):
@@ -42,6 +43,7 @@ class CanonEntityCreateRequest(BaseModel):
     description: Optional[str] = None
     notes: Optional[str] = None
     confidence: Optional[float] = None
+    status: Optional[str] = None
 
 
 class CanonEntityUpdateRequest(BaseModel):
@@ -151,12 +153,62 @@ async def get_project_canon_index(project_id: str):
     return {"documents": controller.get_canon_index(project_id)}
 
 
+@app.get("/projects/{project_id}/canon/sync-status")
+async def get_project_canon_sync_status(project_id: str):
+    retried = _retry_sync_for_project(project_id)
+    sessions = controller.get_review_sessions_by_project(project_id)
+    pending = [s for s in sessions if s.get("syncStatus") == "pending"]
+    errored = [s for s in sessions if s.get("syncStatus") == "error"]
+    return {
+        "project_id": project_id,
+        "autoRetried": len(retried),
+        "totalSubmitted": len([s for s in sessions if s.get("status") == "submitted"]),
+        "pendingCount": len(pending),
+        "errorCount": len(errored),
+        "sessions": sessions[:20],
+    }
+
+
+@app.post("/projects/{project_id}/canon/resync-pending")
+async def retry_project_canon_sync(project_id: str):
+    results = _retry_sync_for_project(project_id)
+    success_count = len([row for row in results if row.get("ok")])
+
+    return {
+        "project_id": project_id,
+        "retryCount": len(results),
+        "successCount": success_count,
+        "results": results,
+    }
+
+
+def _retry_sync_for_project(project_id: str) -> List[Dict[str, Any]]:
+    retryable = controller.get_retryable_review_sessions(project_id)
+    results: List[Dict[str, Any]] = []
+    for session in retryable:
+        sync = _sync_canon_index_for_session(session)
+        controller.mark_review_session_sync_result(session["id"], ok=sync["ok"], message=sync["message"])
+        results.append(
+            {
+                "sessionId": session.get("id"),
+                "ok": sync["ok"],
+                "message": sync["message"],
+            }
+        )
+    return results
+
+
 @app.get("/projects/{project_id}/canon/entities")
 async def get_project_canon_entities(project_id: str, query: Optional[str] = None):
     entities = controller.get_entities_by_project(project_id)
     if query:
         entities = controller.search_entities(project_id, query)
     return {"entities": entities}
+
+
+@app.get("/projects/{project_id}/canon/suggestions")
+async def get_project_canon_suggestions(project_id: str):
+    return {"entities": controller.get_suggested_entities_by_project(project_id)}
 
 
 @app.post("/projects/{project_id}/canon/entities")
@@ -170,12 +222,21 @@ async def create_project_canon_entity(project_id: str, req: CanonEntityCreateReq
                 "aliases": req.aliases or [],
                 "description": req.description,
                 "notes": req.notes,
-                "confidence": req.confidence or 0.0,
+                "confidence": req.confidence if req.confidence is not None else 1.0,
             },
+            status=req.status or "active",
         )
         return {"entity": entity}
     except ValueError as ex:
         raise HTTPException(status_code=400, detail=str(ex)) from ex
+
+
+@app.post("/projects/{project_id}/canon/entities/{entity_id}/promote")
+async def promote_canon_entity(project_id: str, entity_id: str):
+    entity = controller.promote_entity(entity_id)
+    if not entity or entity.get("project_id") != project_id:
+        raise HTTPException(status_code=404, detail="Entity not found")
+    return {"entity": entity}
 
 
 @app.get("/entities/{entity_id}")
@@ -236,6 +297,7 @@ async def review_fact(fact_id: str, req: FactDecisionRequest):
             status=req.status,
             reviewed_by=req.reviewed_by,
             decision_reason=req.decision_reason,
+            confirm_assignment=req.confirm_assignment,
         )
     except ValueError as ex:
         raise HTTPException(status_code=400, detail=str(ex)) from ex
