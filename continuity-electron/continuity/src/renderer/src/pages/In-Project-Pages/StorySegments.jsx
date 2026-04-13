@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import SegmentTextBlock from "../../components/ProjectLayout/SegmentTextBlock";
 import EntityAnalysisCard from "../../components/ProjectLayout/EntityAnalysisCard";
 import projectService from "../../services/projectService";
-import { reviewFact, submitReviewSession } from "../../services/aiService";
+import { assignFactEntity, reviewFact, submitReviewSession } from "../../services/aiService";
 
 const API_BASE = "http://localhost:8001";
 
@@ -14,6 +14,7 @@ const StorySegments = ({uploadedSegments}) => {
   const [error, setError] = useState(null);
   const [submitMessages, setSubmitMessages] = useState({});
   const [submittingBySegment, setSubmittingBySegment] = useState({});
+  const [factEntityOverrides, setFactEntityOverrides] = useState({});
 
   useEffect(() => {
     const loadStored = async () => {
@@ -45,6 +46,7 @@ const StorySegments = ({uploadedSegments}) => {
               facts: (entity.facts || []).map((fact) => ({
                 id: fact.id,
                 text: fact.fact,
+                entityId: fact.entity_id,
                 accepted: fact.status === "approved" ? true : fact.status === "rejected" ? false : null,
               })),
             }));
@@ -97,6 +99,33 @@ const StorySegments = ({uploadedSegments}) => {
     }));
   };
 
+  const applyFactEntityMove = (segmentId, fromEntityId, factId, toEntityId) => {
+    setStoredSegments(prev => prev.map(seg => {
+      if (seg.id !== segmentId) return seg;
+      const nextEntities = seg.entities.map((entity) => {
+        if (entity.id === fromEntityId) {
+          return {
+            ...entity,
+            facts: entity.facts.filter((fact) => fact.id !== factId),
+          };
+        }
+        if (entity.id === toEntityId) {
+          const movedFact = seg.entities
+            .flatMap((item) => item.facts)
+            .find((fact) => fact.id === factId);
+          if (!movedFact) return entity;
+          return {
+            ...entity,
+            facts: [...entity.facts, { ...movedFact, entityId: toEntityId }],
+          };
+        }
+        return entity;
+      });
+      return { ...seg, entities: nextEntities };
+    }));
+    setFactEntityOverrides((prev) => ({ ...prev, [factId]: toEntityId }));
+  };
+
   const getPendingCount = (segment) => {
     return (segment.entities || []).reduce((count, ent) => {
       return count + (ent.facts || []).filter(f => f.accepted === null).length;
@@ -106,8 +135,13 @@ const StorySegments = ({uploadedSegments}) => {
   const handleAccept = async (segmentId, entityId, factId) => {
     setError(null);
     try {
+      const overrideEntityId = factEntityOverrides[factId];
+      if (overrideEntityId && overrideEntityId !== entityId) {
+        await assignFactEntity(factId, overrideEntityId);
+        applyFactEntityMove(segmentId, entityId, factId, overrideEntityId);
+      }
       await reviewFact(factId, "approved");
-      updateFactDecision(segmentId, entityId, factId, true);
+      updateFactDecision(segmentId, overrideEntityId && overrideEntityId !== entityId ? overrideEntityId : entityId, factId, true);
     } catch (e) {
       setError(e.message || "Failed to approve fact");
     }
@@ -120,6 +154,25 @@ const StorySegments = ({uploadedSegments}) => {
       updateFactDecision(segmentId, entityId, factId, false);
     } catch (e) {
       setError(e.message || "Failed to reject fact");
+    }
+  };
+
+  const handleChangeEntity = async (segmentId, entityId, factId, nextEntityId) => {
+    if (!nextEntityId || nextEntityId === entityId) {
+      setFactEntityOverrides((prev) => {
+        const copy = { ...prev };
+        delete copy[factId];
+        return copy;
+      });
+      return;
+    }
+
+    setError(null);
+    try {
+      await assignFactEntity(factId, nextEntityId);
+      applyFactEntityMove(segmentId, entityId, factId, nextEntityId);
+    } catch (e) {
+      setError(e.message || "Failed to reassign entity");
     }
   };
 
@@ -195,9 +248,11 @@ const StorySegments = ({uploadedSegments}) => {
                 <EntityAnalysisCard 
                   key={entity.id} 
                   entity={entity} 
+                  entityOptions={segment.entities}
                   editable={true}
                   onAccept={(entityId, factId) => handleAccept(segment.id, entityId, factId)}
                   onReject={(entityId, factId) => handleReject(segment.id, entityId, factId)}
+                  onChangeEntity={(entityId, factId, nextEntityId) => handleChangeEntity(segment.id, entityId, factId, nextEntityId)}
                   />
                 ))}
               </div>

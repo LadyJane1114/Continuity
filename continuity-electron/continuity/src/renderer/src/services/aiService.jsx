@@ -66,6 +66,25 @@ export async function reviewFact(factId, status, reviewedBy, decisionReason) {
     return res.json();
 }
 
+export async function assignFactEntity(factId, entityId) {
+    const res = await fetch(`${API_BASE}/facts/${factId}/entity`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entity_id: entityId }),
+    });
+    if (!res.ok) {
+        let message = `Fact entity assignment failed (${res.status})`;
+        try {
+            const data = await res.json();
+            message = data.detail || message;
+        } catch {
+            // Ignore parse errors and use generic message.
+        }
+        throw new Error(message);
+    }
+    return res.json();
+}
+
 export async function submitReviewSession(sessionId, submittedBy) {
     const res = await fetch(`${API_BASE}/review-sessions/${sessionId}/submit`, {
         method: "POST",

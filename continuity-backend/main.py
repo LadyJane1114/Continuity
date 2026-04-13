@@ -27,8 +27,35 @@ class FactDecisionRequest(BaseModel):
     decision_reason: Optional[str] = None
 
 
+class FactEntityAssignmentRequest(BaseModel):
+    entity_id: str
+
+
 class ReviewSubmitRequest(BaseModel):
     submitted_by: Optional[str] = None
+
+
+class CanonEntityCreateRequest(BaseModel):
+    name: str
+    type: Optional[str] = None
+    aliases: Optional[List[str]] = None
+    description: Optional[str] = None
+    notes: Optional[str] = None
+    confidence: Optional[float] = None
+
+
+class CanonEntityUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    type: Optional[str] = None
+    aliases: Optional[List[str]] = None
+    description: Optional[str] = None
+    notes: Optional[str] = None
+    confidence: Optional[float] = None
+
+
+class CanonEntityMergeRequest(BaseModel):
+    source_entity_id: str
+    target_entity_id: str
 
 
 app.add_middleware(
@@ -124,6 +151,78 @@ async def get_project_canon_index(project_id: str):
     return {"documents": controller.get_canon_index(project_id)}
 
 
+@app.get("/projects/{project_id}/canon/entities")
+async def get_project_canon_entities(project_id: str, query: Optional[str] = None):
+    entities = controller.get_entities_by_project(project_id)
+    if query:
+        entities = controller.search_entities(project_id, query)
+    return {"entities": entities}
+
+
+@app.post("/projects/{project_id}/canon/entities")
+async def create_project_canon_entity(project_id: str, req: CanonEntityCreateRequest):
+    try:
+        entity = controller.create_entity(
+            project_id,
+            {
+                "name": req.name,
+                "type": req.type,
+                "aliases": req.aliases or [],
+                "description": req.description,
+                "notes": req.notes,
+                "confidence": req.confidence or 0.0,
+            },
+        )
+        return {"entity": entity}
+    except ValueError as ex:
+        raise HTTPException(status_code=400, detail=str(ex)) from ex
+
+
+@app.get("/entities/{entity_id}")
+async def get_canon_entity(entity_id: str):
+    entity = controller.get_entity(entity_id)
+    if not entity:
+        raise HTTPException(status_code=404, detail="Entity not found")
+    return entity
+
+
+@app.put("/entities/{entity_id}")
+async def update_canon_entity(entity_id: str, req: CanonEntityUpdateRequest):
+    updated = controller.update_entity(
+        entity_id,
+        {
+            "name": req.name,
+            "type": req.type,
+            "aliases": req.aliases,
+            "description": req.description,
+            "notes": req.notes,
+            "confidence": req.confidence,
+        },
+    )
+    if not updated:
+        raise HTTPException(status_code=404, detail="Entity not found")
+    return {"entity": updated}
+
+
+@app.delete("/entities/{entity_id}")
+async def delete_canon_entity(entity_id: str):
+    deleted = controller.soft_delete_entity(entity_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Entity not found")
+    return {"entity": deleted}
+
+
+@app.post("/projects/{project_id}/canon/entities/merge")
+async def merge_canon_entities(project_id: str, req: CanonEntityMergeRequest):
+    try:
+        merged = controller.merge_entities(project_id, req.source_entity_id, req.target_entity_id)
+    except ValueError as ex:
+        raise HTTPException(status_code=400, detail=str(ex)) from ex
+    if not merged:
+        raise HTTPException(status_code=404, detail="Entity not found")
+    return {"entity": merged}
+
+
 @app.get("/entities/{entity_id}/facts")
 async def get_entity_facts(entity_id: str):
     return {"facts": controller.get_entity_facts(entity_id)}
@@ -143,6 +242,14 @@ async def review_fact(fact_id: str, req: FactDecisionRequest):
 
     if not updated:
         raise HTTPException(status_code=404, detail="Fact not found")
+    return updated
+
+
+@app.patch("/facts/{fact_id}/entity")
+async def assign_fact_entity(fact_id: str, req: FactEntityAssignmentRequest):
+    updated = controller.reassign_fact_entity(fact_id, req.entity_id)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Fact or entity not found")
     return updated
 
 

@@ -240,50 +240,238 @@ def modify_event(event_id: str, name: str, description: str, participants: List[
 
 
 # -------------- Entities + Facts -------------------#
+def _entity_status(doc: Dict[str, Any]) -> str:
+    return (doc.get("status") or "active").strip().lower()
+
+
+def _entity_type(payload: Dict[str, Any]) -> str:
+    return (payload.get("entityType") or payload.get("type") or "concept").strip()
+
+
+def _hydrate_entity(doc: Dict[str, Any]) -> Dict[str, Any]:
+    hydrated = dict(doc)
+    hydrated["status"] = _entity_status(hydrated)
+    hydrated["aliases"] = _safe_unique(list(hydrated.get("aliases", [])))
+    hydrated["story_ids"] = _safe_unique(list(hydrated.get("story_ids", [])))
+    hydrated["fact_ids"] = _safe_unique(list(hydrated.get("fact_ids", [])))
+    hydrated.setdefault("deleted_at", None)
+    hydrated.setdefault("merged_into", None)
+    hydrated.setdefault("redirect_to", None)
+    hydrated.setdefault("sync_status", "pending")
+    hydrated.setdefault("sync_message", None)
+    return hydrated
+
+
+def _normalized_aliases(entity_row: Dict[str, Any]) -> List[str]:
+    return [_normalize_name(alias) for alias in entity_row.get("aliases", []) or [] if alias]
+
+
+def _matches_entity_name(entity_row: Dict[str, Any], name: str) -> bool:
+    candidate = _normalize_name(name)
+    canonical = entity_row.get("normalized_name", "")
+    aliases = _normalized_aliases(entity_row)
+
+    if candidate == canonical or candidate in aliases:
+        return True
+
+    canonical_parts = [part for part in canonical.split() if part]
+    candidate_parts = [part for part in candidate.split() if part]
+    if canonical_parts and candidate_parts and canonical_parts[-1] == candidate_parts[-1]:
+        return True
+
+    return any(candidate in value or value in candidate for value in ([canonical] + aliases) if value)
+
+
+def _find_active_entity(project_id: str, name: str, entity_type: str) -> Optional[Dict[str, Any]]:
+    rows = entity.search(Query().project_id == project_id)
+    for row in rows:
+        if _entity_status(row) != "active":
+            continue
+        if row.get("entityType") == entity_type and _matches_entity_name(row, name):
+            return row
+    return None
+
+
+def create_entity(project_id: str, entity_payload: Dict[str, Any]) -> Dict[str, Any]:
+    _ensure_stats_doc()
+    name = (entity_payload.get("name") or "").strip()
+    if not name:
+        raise ValueError("Entity name is required")
+
+    now = _now_ts()
+    doc = {
+        "id": id_generator(ENTITY_PRE, entity),
+        "project_id": project_id,
+        "story_ids": _safe_unique(list(entity_payload.get("story_ids") or [])),
+        "entityType": _entity_type(entity_payload),
+        "name": name,
+        "normalized_name": _normalize_name(name),
+        "aliases": _safe_unique(list(entity_payload.get("aliases") or [])),
+        "fact_ids": _safe_unique(list(entity_payload.get("fact_ids") or [])),
+        "firstMentionedAt": entity_payload.get("firstMentionedAt"),
+        "lastUpdatedAt": entity_payload.get("lastUpdatedAt"),
+        "version": int(entity_payload.get("version", 1)),
+        "confidence": float(entity_payload.get("confidence", 0.0)),
+        "description": entity_payload.get("description"),
+        "notes": entity_payload.get("notes"),
+        "status": "active",
+        "deleted_at": None,
+        "merged_into": None,
+        "redirect_to": None,
+        "sync_status": entity_payload.get("sync_status", "pending"),
+        "sync_message": entity_payload.get("sync_message"),
+        "created_at": now,
+        "updated_at": now,
+    }
+    entity.insert(doc)
+    entity_count("increase")
+    return doc
+
+
+def update_entity(entity_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    doc = entity.get(Query().id == entity_id)
+    if not doc:
+        return None
+
+    now = _now_ts()
+    current_name = doc.get("name") or ""
+    next_name = (updates.get("name") or current_name).strip()
+    next_type = _entity_type(updates) if ("entityType" in updates or "type" in updates) else (doc.get("entityType") or "concept")
+
+    if next_name and next_name != current_name:
+        doc["aliases"] = _safe_unique(list(doc.get("aliases", [])) + [current_name])
+        doc["name"] = next_name
+        doc["normalized_name"] = _normalize_name(next_name)
+
+    doc["entityType"] = next_type
+    if "aliases" in updates:
+        doc["aliases"] = _safe_unique(list(doc.get("aliases", [])) + list(updates.get("aliases") or []))
+    if "story_ids" in updates:
+        doc["story_ids"] = _safe_unique(list(doc.get("story_ids", [])) + list(updates.get("story_ids") or []))
+    if "description" in updates:
+        doc["description"] = updates.get("description")
+    if "notes" in updates:
+        doc["notes"] = updates.get("notes")
+    if "confidence" in updates:
+        doc["confidence"] = float(updates.get("confidence") or 0.0)
+
+    doc["version"] = int(doc.get("version", 1)) + 1
+    doc["sync_status"] = "pending"
+    doc["sync_message"] = None
+    doc["updated_at"] = now
+    entity.update(doc, Query().id == entity_id)
+    return _hydrate_entity(doc)
+
+
+def soft_delete_entity(entity_id: str) -> Optional[Dict[str, Any]]:
+    doc = entity.get(Query().id == entity_id)
+    if not doc:
+        return None
+
+    now = _now_ts()
+    doc["status"] = "deleted"
+    doc["deleted_at"] = now
+    doc["sync_status"] = "pending"
+    doc["sync_message"] = None
+    doc["updated_at"] = now
+    entity.update(doc, Query().id == entity_id)
+    return _hydrate_entity(doc)
+
+
+def merge_entities(project_id: str, source_entity_id: str, target_entity_id: str) -> Optional[Dict[str, Any]]:
+    source = entity.get(Query().id == source_entity_id)
+    target = entity.get(Query().id == target_entity_id)
+    if not source or not target:
+        return None
+    if source.get("project_id") != project_id or target.get("project_id") != project_id:
+        raise ValueError("Entities must belong to the same project")
+
+    now = _now_ts()
+    target["aliases"] = _safe_unique(list(target.get("aliases", [])) + [source.get("name", "")])
+    target["story_ids"] = _safe_unique(list(target.get("story_ids", [])) + list(source.get("story_ids", [])))
+    target["fact_ids"] = _safe_unique(list(target.get("fact_ids", [])) + list(source.get("fact_ids", [])))
+    target["version"] = int(target.get("version", 1)) + 1
+    target["sync_status"] = "pending"
+    target["sync_message"] = None
+    target["updated_at"] = now
+    entity.update(target, Query().id == target_entity_id)
+
+    for fid in source.get("fact_ids", []):
+        fact_row = fact.get(Query().id == fid)
+        if not fact_row:
+            continue
+        fact_row["entity_id"] = target_entity_id
+        fact_row["updated_at"] = now
+        fact.update(fact_row, Query().id == fid)
+
+    source["status"] = "merged"
+    source["merged_into"] = target_entity_id
+    source["redirect_to"] = target_entity_id
+    source["deleted_at"] = now
+    source["sync_status"] = "pending"
+    source["sync_message"] = None
+    source["updated_at"] = now
+    entity.update(source, Query().id == source_entity_id)
+    return _hydrate_entity(target)
+
+
+def resolve_entity(entity_id: str) -> Optional[Dict[str, Any]]:
+    visited = set()
+    current_id = entity_id
+    while current_id and current_id not in visited:
+        visited.add(current_id)
+        doc = entity.get(Query().id == current_id)
+        if not doc:
+            return None
+        redirect_to = doc.get("redirect_to")
+        if redirect_to:
+            current_id = redirect_to
+            continue
+        return _hydrate_entity(doc)
+    return None
+
+
+def search_entities(project_id: str, query: str, include_deleted: bool = False) -> List[Dict[str, Any]]:
+    normalized = _normalize_name(query)
+    rows = entity.search(Query().project_id == project_id)
+    results: List[Dict[str, Any]] = []
+    for row in rows:
+        if not include_deleted and _entity_status(row) in {"deleted", "merged"}:
+            continue
+        haystack = [row.get("normalized_name", "")] + [_normalize_name(alias) for alias in row.get("aliases", []) or []]
+        if any(normalized in item or item in normalized for item in haystack if item):
+            results.append(_hydrate_entity(row))
+    return results
+
+
 def upsert_entity(project_id: str, story_id: str, entity_payload: Dict[str, Any]) -> Dict[str, Any]:
     _ensure_stats_doc()
     name = (entity_payload.get("name") or "").strip()
-    entity_type = (entity_payload.get("entityType") or "concept").strip()
-    aliases = list(entity_payload.get("aliases") or [])
-    confidence = float(entity_payload.get("confidence", 0.0))
-    norm_name = _normalize_name(name)
+    if not name:
+        raise ValueError("Entity name is required")
 
-    existing = entity.get(
-        (Query().project_id == project_id)
-        & (Query().entityType == entity_type)
-        & (Query().normalized_name == norm_name)
-    )
-
-    now = _now_ts()
+    entity_type = _entity_type(entity_payload)
+    existing = _find_active_entity(project_id, name, entity_type)
     if not existing:
-        doc = {
-            "id": id_generator(ENTITY_PRE, entity),
-            "project_id": project_id,
-            "story_ids": [story_id] if story_id else [],
-            "entityType": entity_type,
-            "name": name,
-            "normalized_name": norm_name,
-            "aliases": _safe_unique(aliases),
-            "fact_ids": [],
-            "firstMentionedAt": entity_payload.get("firstMentionedAt"),
-            "lastUpdatedAt": entity_payload.get("lastUpdatedAt"),
-            "version": int(entity_payload.get("version", 1)),
-            "confidence": confidence,
-            "created_at": now,
-            "updated_at": now,
-        }
-        entity.insert(doc)
-        entity_count("increase")
-        return doc
+        return create_entity(
+            project_id,
+            {
+                **entity_payload,
+                "story_ids": [story_id] if story_id else entity_payload.get("story_ids", []),
+                "entityType": entity_type,
+            },
+        )
 
-    existing["aliases"] = _safe_unique(existing.get("aliases", []) + aliases)
-    existing["story_ids"] = _safe_unique(existing.get("story_ids", []) + ([story_id] if story_id else []))
-    existing["confidence"] = max(float(existing.get("confidence", 0.0)), confidence)
+    existing["aliases"] = _safe_unique(list(existing.get("aliases", [])) + list(entity_payload.get("aliases") or []))
+    existing["story_ids"] = _safe_unique(list(existing.get("story_ids", [])) + ([story_id] if story_id else []))
+    existing["confidence"] = max(float(existing.get("confidence", 0.0)), float(entity_payload.get("confidence", 0.0)))
     existing["version"] = int(existing.get("version", 1)) + 1
-    existing["updated_at"] = now
+    existing["updated_at"] = _now_ts()
     existing["lastUpdatedAt"] = entity_payload.get("lastUpdatedAt")
+    existing["sync_status"] = "pending"
+    existing["sync_message"] = None
     entity.update(existing, Query().id == existing["id"])
-    return existing
+    return _hydrate_entity(existing)
 
 
 def _attach_conflicts(entity_id: str, new_fact: Dict[str, Any]) -> Dict[str, Any]:
@@ -528,6 +716,8 @@ def get_entities_by_story(story_id: str) -> List[Dict[str, Any]]:
     rows = entity.search(Query().story_ids.test(lambda ids: isinstance(ids, list) and story_id in ids))
     output: List[Dict[str, Any]] = []
     for e in rows:
+        if _entity_status(e) in {"deleted", "merged"}:
+            continue
         ec = dict(e)
         ec["facts"] = fact.search(Query().entity_id == e["id"])
         output.append(ec)
@@ -538,6 +728,8 @@ def get_entities_by_project(project_id: str) -> List[Dict[str, Any]]:
     rows = entity.search(Query().project_id == project_id)
     output: List[Dict[str, Any]] = []
     for e in rows:
+        if _entity_status(e) in {"deleted", "merged"}:
+            continue
         ec = dict(e)
         ec["facts"] = fact.search(Query().entity_id == e["id"])
         output.append(ec)
@@ -546,6 +738,36 @@ def get_entities_by_project(project_id: str) -> List[Dict[str, Any]]:
 
 def get_entity_facts(entity_id: str) -> List[Dict[str, Any]]:
     return fact.search(Query().entity_id == entity_id)
+
+
+def reassign_fact_entity(fact_id: str, new_entity_id: str) -> Optional[Dict[str, Any]]:
+    fact_row = fact.get(Query().id == fact_id)
+    new_entity = entity.get(Query().id == new_entity_id)
+    if not fact_row or not new_entity:
+        return None
+
+    old_entity_id = fact_row.get("entity_id")
+    now = _now_ts()
+
+    fact_row["entity_id"] = new_entity_id
+    fact_row["updated_at"] = now
+    fact.update(fact_row, Query().id == fact_id)
+
+    if old_entity_id and old_entity_id != new_entity_id:
+        old_entity = entity.get(Query().id == old_entity_id)
+        if old_entity:
+            old_entity["fact_ids"] = [fid for fid in old_entity.get("fact_ids", []) if fid != fact_id]
+            old_entity["sync_status"] = "pending"
+            old_entity["sync_message"] = None
+            old_entity["updated_at"] = now
+            entity.update(old_entity, Query().id == old_entity_id)
+
+    new_entity["fact_ids"] = _safe_unique(list(new_entity.get("fact_ids", [])) + [fact_id])
+    new_entity["sync_status"] = "pending"
+    new_entity["sync_message"] = None
+    new_entity["updated_at"] = now
+    entity.update(new_entity, Query().id == new_entity_id)
+    return fact_row
 
 
 def get_project_conflicts(project_id: str) -> List[Dict[str, Any]]:

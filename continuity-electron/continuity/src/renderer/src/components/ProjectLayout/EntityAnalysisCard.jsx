@@ -1,7 +1,5 @@
 
-
-
-const EntityAnalysisCard = ({ entity, editable = false, onAccept, onReject }) => {
+const EntityAnalysisCard = ({ entity, entityOptions = [], editable = false, onAccept, onReject, onChangeEntity }) => {
   return (
     <div className="entity-card">
         <h3>{entity.name}</h3>
@@ -13,6 +11,21 @@ const EntityAnalysisCard = ({ entity, editable = false, onAccept, onReject }) =>
           {entity.facts.map((fact) => (
             <li key={fact.id} className={`fact fact-${fact.accepted}`}>
               {fact.text}
+
+              {editable && entityOptions.length > 0 && (
+                <span className="fact-entity-override" style={{ display: "inline-flex", marginLeft: "0.75rem" }}>
+                  <select
+                    value={fact.entityId || entity.id}
+                    onChange={(event) => onChangeEntity?.(entity.id, fact.id, event.target.value)}
+                  >
+                    {entityOptions.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.name}
+                      </option>
+                    ))}
+                  </select>
+                </span>
+              )}
 
               {editable && (
                 <span className="fact-actions">
