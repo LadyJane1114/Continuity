@@ -234,7 +234,7 @@ const SegmentUpload = ({setSegments}) => {
           />}
 
     <form className='segmentUpload' onSubmit={handleSubmit}>
-        <label htmlFor='userSegment'>Submit your Story Segment:</label>
+        <label htmlFor='userSegment' style={{fontSize:"x-large"}}>Submit your Story Segment:</label>
 
         <label htmlFor='segmentTitle'>Segment Title:</label>
         <input id='segmentTitle' type='text' value={segmentTitle} onChange={(e)=> setSegmentTitle(e.target.value)} placeholder='Ex: Chapter 1' maxLength={150}/>
@@ -264,7 +264,7 @@ const SegmentUpload = ({setSegments}) => {
 
     {/* Only render below if analysis exists */}
         {analysis && (
-            <div className='segment-summary' style={{padding:"2rem", backgroundColor:"red",margin:"5px", borderRadius:"8px" }}>
+            <div className='segment-summary'>
                 <div>{analysis.summary}</div>
                 <div style={{marginTop: "0.5rem"}}>
                     Pending facts: {analysis.pendingFactsCount || 0} | Conflicts: {analysis.conflictsDetected || 0}
@@ -298,7 +298,7 @@ const SegmentUpload = ({setSegments}) => {
             />
         ))}
           {analysis && (
-              <div className="bottom-action-bar" style={{ margin: "2rem 0", textAlign: "center" }}>
+              <div className="bottom-action-bar">
                   <button
                       type='button'
                       onClick={handleSubmitReview}

@@ -333,20 +333,6 @@ const StorySegments = ({uploadedSegments}) => {
               {/* THE FULL TEXT */}
               <SegmentTextBlock segment={segment.text}/>
 
-              <div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleSubmitSession(segment);
-                  }}
-                  disabled={submittingBySegment[segment.id] || getPendingCount(segment) > 0 || !segment.reviewSessionId}
-                >
-                  {submittingBySegment[segment.id] ? "Submitting..." : "Submit Canon Decisions"}
-                </button>
-                {getPendingCount(segment) > 0 && <span style={{marginLeft: "0.5rem"}}>Resolve all facts before submit.</span>}
-              </div>
-
               {/* Entity cards - review mode */}
               <div style={{ flexShrink: 0, minWidth: "250px" }}>
               {segment.entities.map(entity =>(
@@ -355,7 +341,7 @@ const StorySegments = ({uploadedSegments}) => {
                   entity={entity} 
                   entityOptions={projectEntityOptions.length > 0 ? projectEntityOptions : segment.entities}
                   selectedEntityByFact={explicitEntityChoiceByFact}
-                  editable={true}
+                  editable={false}
                   onAccept={(entityId, factId) => handleAccept(segment.id, entityId, factId)}
                   onReject={(entityId, factId) => handleReject(segment.id, entityId, factId)}
                   onChangeEntity={(entityId, factId, nextEntityId) => handleChangeEntity(segment.id, entityId, factId, nextEntityId)}
